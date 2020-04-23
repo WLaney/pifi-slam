@@ -1,3 +1,9 @@
 # ignore vim swap files
 *.swp
 *.swo
+
+# ignore python virtual enviroment
+env/
+
+# ignore python stuff
+__pycache__/
