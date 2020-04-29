@@ -43,7 +43,10 @@ print('start')
 print('press button 17 to end')
 with open(file_name, 'w') as f:
     writer = csv.writer(f)
-    for i in range(10000):
+    print("don't move")
+    for i in range(12000):
+        if i == 10:
+            print("start moving")
         data[0] = time.time()
         data[1:4] = sensor.acceleration
         data[4:] = sensor.gyro
@@ -55,6 +58,6 @@ with open(file_name, 'w') as f:
         # goverment work.
         if time_to_leave == True:
             break
-        time.sleep(0.1)
+        time.sleep(0.05)
 GPIO.cleanup()
 print('done')
