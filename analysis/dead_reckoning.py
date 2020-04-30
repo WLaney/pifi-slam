@@ -15,6 +15,18 @@ class deadReckoning:
         self.wz =  np.deg2rad(data[:,6])
         del data  # superstion is fun
         
+        # set up some constants
+        # TODO make these input variables
+        # we do a window moving average, this is the number of samples in each direction from the 
+        # point of intest
+        self.win_size = 3
+        # we start taking data before we start moving for callibration
+        # we need to offset our loop counter by this amount when writng to new variables
+        self.start_offset = 10
+        #combine all the indexing offsets
+        # ths determines the total size of our new arrays
+        self.total_offset = self.win_size + self.start_offset
+        
     def data_stats(self):
         print("Number of data reads: " + str(self.time.size))
         print("Time accounted for: " + str(self.time[-1] - self.time[1]))
@@ -26,52 +38,60 @@ class deadReckoning:
         #print("Average Reading Frequency: " + str(1/mean_delta_t))
         
     def displacment_from_axis(self, axis):
-        # we do a window moving average, this is the number of samples in each direction from the 
-        # point of intest
-        win_size = 3
-        # we start taking data before we start moving for callibration
-        # we need to offset our loop counter by this amount when writng to new variables
-        start_offset = 10
-        #combine all the indexing offsets
-        # ths determines the total size of our new arrays
-        total_offset = win_size + start_offset
         # we start not moving
         v_prev = 0
         
         # we need the first item in ax for intial time, so we always have ax-1 measurments
         # in this contexted the displacment is the distance in each time step, not the total distance traveld
-        displacment = np.zeros(axis.size - total_offset)
-        self.velocity = np.zeros(axis.size - total_offset)
+        displacment = np.zeros(axis.size - self.total_offset)
+        self.velocity = np.zeros(axis.size - self.total_offset)
         print(self.velocity.size)
-        self.total_displacment = np.zeros(axis.size - total_offset)
+        self.total_displacment = np.zeros(axis.size - self.total_offset)
         #axis -= np.mean(axis[:10]) # this needs to be improved
-        for i in range(start_offset, axis.size-win_size):
+        for i in range(self.start_offset, axis.size-self.win_size):
             #delta_t = 0.05
             delta_t = self.time[i] - self.time[i-1]
             # this is a simple rolling average
-            accel = np.mean(axis[i-win_size:i+win_size+1])
-            displacment[i - start_offset] = (v_prev * delta_t) #+ (0.5 * accel * delta_t**2)
+            accel = np.mean(axis[i-self.win_size:i+self.win_size+1])
+            displacment[i - self.start_offset] = (v_prev * delta_t) #+ (0.5 * accel * delta_t**2)
             v_prev += (accel * delta_t)
-            self.velocity[i-start_offset] = v_prev
-            self.total_displacment[i - start_offset] = displacment[i - start_offset] + self.total_displacment[i - start_offset - 1]
+            self.velocity[i-self.start_offset] = v_prev
+            self.total_displacment[i - self.start_offset] = \
+                displacment[i - self.start_offset] + self.total_displacment[i - self.start_offset - 1]
             
         return displacment
         
     def rotation_from_wz(self):
         # in this contexted the displacment is the distance in each time step, not the total distance traveld
-        angle = np.zeros(self.wz.size - 1)
-        for i in range(1, self.wz.size):
+        angle = np.zeros(self.wz.size - self.total_offset)
+        for i in range(self.start_offset, self.wz.size-self.win_size):
             delta_t = self.time[i] - self.time[i-1]
-            angle[i - 1] = angle[i - 2] + (self.wz[i] * delta_t)
+            angle[i - self.start_offset] = angle[self.start_offset - 1] + (self.wz[i] * delta_t)
                 
         return angle
+        
+    def rd2xy(self, displacment, angle):
+        """Change dispacment and roation into xy cordinates"""
+        
+        assert displacment.size == angle.size
+        xy_cords = np.zeros([displacment.size, 2])
+        for i in range(1, displacment.size):
+            xy_cords[i, 0] = xy_cords[i-1, 0] + (displacment[i] * np.cos(angle[i]))
+            xy_cords[i, 1] = xy_cords[i-1, 1] + (displacment[i] * np.sin(angle[i]))
+            
+        return xy_cords
             
         
-    def plot_trajectory(self):
-        pass
+    def plot_trajectory(self, xy_cords):
+        plt.figure()
+        plt.plot(xy_cords[:,0], xy_cords[:,1])
+        plt.title("Trajectory")
+        plt.xlabel("X (m)")
+        plt.ylabel("Y (m)")
+        plt.show(block=False)
         
     def plot_accleration(self, axis='all'):
-        plt.figure(1) # there is almost deffiently a better way to have multiple plots
+        plt.figure() # there is almost deffiently a better way to have multiple plots
         if axis=='all':
             plt.plot(self.time, self.ax, '.', self.time, self.ay, '.', self.time, self.az, '.')
             plt.legend(['ax', 'ay', 'az'])
@@ -92,7 +112,7 @@ class deadReckoning:
         plt.show(block=False)
     
     def plot_omega(self):
-        plt.figure(2)
+        plt.figure()
         plt.plot(self.time, self.wx, self.time, self.wy, self.time, self.wz)
         plt.xlabel('Time')
         plt.ylabel('Angular Velocity (deg/s)')
@@ -101,7 +121,7 @@ class deadReckoning:
         plt.show(block=False)
         
     def plot_velocity(self):
-        plt.figure(3)
+        plt.figure()
         plt.plot(self.velocity, '-')
         plt.xlabel('Samples')
         plt.ylabel('Velocity (m/s)')
@@ -109,11 +129,13 @@ class deadReckoning:
         plt.show(block=False)
         
     def plot_distance(self):
-        plt.figure(4)
+        plt.figure()
         plt.plot(self.total_displacment, '*')
         plt.xlabel('Samples')
         plt.ylabel('Total Displacment (m)')
         plt.title('Displacment vs Samples')
         plt.show(block=False)
+        
     def show_plots(self):
+        # this feels stupid but I don't know a better way to get the behavior I want
         plt.show()
