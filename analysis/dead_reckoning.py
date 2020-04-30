@@ -47,7 +47,7 @@ class deadReckoning:
         self.velocity = np.zeros(axis.size - self.total_offset)
         print(self.velocity.size)
         self.total_displacment = np.zeros(axis.size - self.total_offset)
-        #axis -= np.mean(axis[:10]) # this needs to be improved
+        axis -= np.mean(axis[0:self.start_offset]) # this needs to be improved
         for i in range(self.start_offset, axis.size-self.win_size):
             #delta_t = 0.05
             delta_t = self.time[i] - self.time[i-1]
@@ -84,7 +84,7 @@ class deadReckoning:
         
     def plot_trajectory(self, xy_cords):
         plt.figure()
-        plt.plot(xy_cords[:,0], xy_cords[:,1])
+        plt.plot(xy_cords[:,0], xy_cords[:,1], '-.')
         plt.title("Trajectory")
         plt.xlabel("X (m)")
         plt.ylabel("Y (m)")
@@ -115,14 +115,14 @@ class deadReckoning:
         plt.figure()
         plt.plot(self.time, self.wx, self.time, self.wy, self.time, self.wz)
         plt.xlabel('Time')
-        plt.ylabel('Angular Velocity (deg/s)')
+        plt.ylabel('Angular Velocity (rad/s)')
         plt.legend(['wx', 'wy', 'wz'])
         plt.title('Input Angular Velocity vs Time')
         plt.show(block=False)
         
     def plot_velocity(self):
         plt.figure()
-        plt.plot(self.velocity, '-')
+        plt.plot(self.velocity, '.')
         plt.xlabel('Samples')
         plt.ylabel('Velocity (m/s)')
         plt.title('Velcocoty vs Samples')
