@@ -30,8 +30,10 @@ class deadReckoning:
         # point of intest
         win_size = 3
         # we start taking data before we start moving for callibration
+        # we need to offset our loop counter by this amount when writng to new variables
         start_offset = 10
         #combine all the indexing offsets
+        # ths determines the total size of our new arrays
         total_offset = win_size + start_offset
         # we start not moving
         v_prev = 0
@@ -40,17 +42,18 @@ class deadReckoning:
         # in this contexted the displacment is the distance in each time step, not the total distance traveld
         displacment = np.zeros(axis.size - total_offset)
         self.velocity = np.zeros(axis.size - total_offset)
-        self.total_displacment = np.zeros(axis.size - total_offset - 3)
+        print(self.velocity.size)
+        self.total_displacment = np.zeros(axis.size - total_offset)
         #axis -= np.mean(axis[:10]) # this needs to be improved
         for i in range(start_offset, axis.size-win_size):
             #delta_t = 0.05
             delta_t = self.time[i] - self.time[i-1]
             # this is a simple rolling average
             accel = np.mean(axis[i-win_size:i+win_size+1])
-            displacment[i - total_offset] = (v_prev * delta_t) #+ (0.5 * accel * delta_t**2)
+            displacment[i - start_offset] = (v_prev * delta_t) #+ (0.5 * accel * delta_t**2)
             v_prev += (accel * delta_t)
-            self.velocity[i-total_offset] = v_prev
-            self.total_displacment[i - total_offset] = displacment[i - total_offset] + self.total_displacment[i - (total_offset + 1)]
+            self.velocity[i-start_offset] = v_prev
+            self.total_displacment[i - start_offset] = displacment[i - start_offset] + self.total_displacment[i - start_offset - 1]
             
         return displacment
         
