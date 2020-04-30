@@ -26,6 +26,9 @@ GPIO.add_event_detect(27, GPIO.FALLING, callback=start)
 time_to_leave = False
 time_to_start = False
 
+# set accerometer range, it should default to 2G
+sensor.accel_range = adafruit_lsm9ds1.ACCELRANGE_2G
+
 print("Press button 27 to begin")
 # a bad way to do this
 while not time_to_start:
@@ -47,7 +50,7 @@ with open(file_name, 'w') as f:
     for i in range(12000):
         if i == 10:
             print("start moving")
-        data[0] = time.time()
+        data[0] = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
         data[1:4] = sensor.acceleration
         data[4:] = sensor.gyro
         #mag_x, mag_y, mag_z = sensor.magnetic
