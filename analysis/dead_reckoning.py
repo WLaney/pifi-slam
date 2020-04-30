@@ -66,7 +66,7 @@ class deadReckoning:
         angle = np.zeros(self.wz.size - self.total_offset)
         for i in range(self.start_offset, self.wz.size-self.win_size):
             delta_t = self.time[i] - self.time[i-1]
-            angle[i - self.start_offset] = angle[self.start_offset - 1] + (self.wz[i] * delta_t)
+            angle[i - self.start_offset] = angle[i - self.start_offset - 1] + (self.wz[i] * delta_t)
                 
         return angle
         
