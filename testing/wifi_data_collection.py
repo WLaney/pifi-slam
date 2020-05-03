@@ -43,26 +43,28 @@ class Collection:
         count = 0
 
         # Wait for user to push 'start' button
-        print("Push button 17 to start, 27 to quit.")
+        print("Push button 17 to start and stop data collection, 27 to quit.")
         while not self.collecting:
-            time.sleep(0.05)
+            time.sleep(0.1)
             # Todo: make this a threading.Event()
 
         # User has pushed 'start'
-        # Here, we're sampling at 0.25 Hz
-        starttime = time.time()
 
         while self.collecting:
-            t1 = time.time()
-            print(t1)
-            p = subprocess.check_output(self.cmd3, shell=True)
-            # To track how long the command takes:
-            #print(time.time() - t1)
-            f.write("Iteration " + str(count) + '\n\n')
-            f.write(p.decode())
-            count += 1
-            time.sleep(float('%.6f'%(4 - (time.time() - t1))))
-
+            try:
+                p = subprocess.check_output(self.cmd3, shell=True)
+                f.write("Iteration " + str(count) + '\n\n')
+                f.write(p.decode())
+                count += 1
+                print(time.time())
+            except subprocess.CalledProcessError:
+                print("wlan0 was busy")
+                time.sleep(0.1)
+                count += 1
+            finally:
+                print("iteration " + str(count))
+        
+        # User has pushed button 17 again (stop).
         f.close()
         GPIO.cleanup()
         print("Done")
