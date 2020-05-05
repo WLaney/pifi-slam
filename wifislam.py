@@ -19,37 +19,85 @@ class Slam:
         self.drm = dead_reckoning.deadReckonginMath()
         
         # variances
+         # TODO look up the values I experemntly found for these
         self.var_dis = 1
         self.var_gyro = 1
         #self.var_wifi = 
         
         # other variables
-        self.tau = 2
+        self.tau = 2 # scale parameter repesting the distance between walls
+        
+    def solve_slam(self):
+        
+        convered = False
+        converg_threshold = 0.1 # I made this up
+        trys = 0
+        max_trys = 5
+        while convered is False and trys < max_trys:
+            # get the XY repsentation of the robot pose
+            self.positon_xy = self.drm.rd2xy(robot_position)
+            
+            # calulate predicted WiFi measurments
+            
+            # calculate predicted gyro measurments
+            
+            # do not need to calculate predicted distance meaurments because we "measure that directly"
+            # if the paper cheats we get to cheat too
+            
+            # calculate the diffrence between predicted and real measurments
+            
+            # calcuate the jacobian
+            
+            # formulat diffrences into a giant vector
+            
+            # solve for correction and adjust the state vector
+            
+            # check if convergence critera is met
+            if np.mean(correction) < converg_threshold:
+                # if on average nothing is changing by more than 0.1 say we're convered
+                # I have no idea if this a good way to check for convergence
+                # at the very least we should probably have a diffrent threshold for each meausrment type
+                convered = True
+                
+            # reformulat new state vecotr back into a sane repsentatoin
 
 
     # def_h_wifi
     # predicts the vector h of all predicted wifi measurements for a single access point
     # h[i] = a single prediction
-    def predict_h_wifi(self, wifi_data_ap):
-        assert self.move_data.shape[0] == wifi_data_ap.shape[0]
+    def predict_h_wifi(self):
+        assert self.position.shape[0] == self.wifi_data.shape[0]
         
-        # convert move_data to x/y 
-        move_data_xy = self.drm.rd2xy(good_move_data)
+        # we should be returning predictions in an identical form as the input
+        pred_wifi_matrix = np.empty(wifi_data.shape)
+        # making identical means lots of NaNs
+        pred_wifi_matrix[:] = np.NaN
         
-        # get the real wifi measurment and the corosponding movment measurments
-        # we can use the real_wif_index to put the NaNs back at the end
-        real_wifi_index = ~np.isnan(wifi_data_ap)
-        real_wifi = wifi_data_ap[real_wifi_index]
-        wifi_move_data = self.move_data_xy[real_wifi_index]
+        # loop over the diffrent access points
+        for wap in range(wifi_data.shape[1])
+            
+            # get the real wifi measurment and the corosponding movment measurments
+            # we can use the real_wif_index to put the NaNs back at the end
+            real_wifi_index = ~np.isnan(wifi_data[:,wap])
+            real_wifi = wifi_data[real_wifi_index:,wap]
+            wifi_move_data = self.move_data_xy[real_wifi_index]
         
-        # to get z_wifi
-        # 1. take column from wifi_data (for a single AP)
-        # 2. remove zeros from the column, and remove the corresponding move_data measurements (recall assertion)
-        # 3. loop 
-        pred_wifi = np.zeros(real_wifi.shape)
-        for i in range(real_wifi.shape[0]):
-            beta = self.calc_beta(i, wifi_move_data)
-            pred_wifi[i] = np.transpose(beta) * real_wifi
+            # to get z_wifi
+            # 1. take column from wifi_data (for a single AP)
+            # 2. remove zeros from the column, and remove the corresponding move_data measurements (recall assertion)
+            # 3. loop 
+            pred_wifi = np.zeros(real_wifi.shape)
+            for i in range(real_wifi.shape[0]):
+                beta = self.calc_beta(i, wifi_move_data)
+                pred_wifi[i] = np.transpose(beta) * real_wifi
+                
+            # put the prediced WiFi data back into a vecor with the NaN
+            # if preformace becomes an issue we should do this without the temp variabel.
+            pred_wifi_full_size = pred_wifi_matrix[:wap]
+            pred_wifi_full_size[real_wifi_ind] = pred_wifi
+            pred_wifi_matrix[:wap] = pred_wifi_full_size
+            
+        return pred_wifi_matrix
             
     def calc_beta(self, index, wifi_move_data):
         """Calculate the weighting vecory Beta for the ith wifi measurment
