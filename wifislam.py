@@ -9,11 +9,14 @@ class Slam:
         
         # input data
         # movment data is a Nx2 matrix where N is the number of time steps
-        # the first collum is d and the second is phi
+        # the first collum is distnace and the second is angular velcoties
         self.movement_measurments = movement_data
         # wifi data is a NxM matrix where N is the number of time steps and M is the number of unquia WAPs
         # If we do not have a reading from a spefic WAP at a point in time we put NaN in it's cell
         self.wifi_measurments = wifi_data
+        
+        # get the dead reckong math functions, these allow us to go between XY and D-Phi space
+        self.drm = dead_reckoning.deadReckonginMath()
         
         # variances
         self.var_dis = 1
@@ -31,7 +34,7 @@ class Slam:
         assert self.move_data.shape[0] == wifi_data_ap.shape[0]
         
         # convert move_data to x/y 
-        move_data_xy = deadReckoning.rd2xy(good_move_data)
+        move_data_xy = self.drm.rd2xy(good_move_data)
         
         # get the real wifi measurment and the corosponding movment measurments
         # we can use the real_wif_index to put the NaNs back at the end

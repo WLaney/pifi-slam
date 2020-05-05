@@ -70,26 +70,6 @@ class deadReckoning:
                 
         return angle
         
-    def rd2xy(self, displacment, angle):
-        """Change dispacment and roation into xy cordinates"""
-        
-        assert displacment.size == angle.size
-        xy_cords = np.zeros([displacment.size, 2])
-        for i in range(1, displacment.size):
-            xy_cords[i, 0] = xy_cords[i-1, 0] + (displacment[i] * np.cos(angle[i]))
-            xy_cords[i, 1] = xy_cords[i-1, 1] + (displacment[i] * np.sin(angle[i]))
-            
-        return xy_cords
-            
-        
-    def plot_trajectory(self, xy_cords):
-        plt.figure()
-        plt.plot(xy_cords[:,0], xy_cords[:,1], '-.')
-        plt.title("Trajectory")
-        plt.xlabel("X (m)")
-        plt.ylabel("Y (m)")
-        plt.show(block=False)
-        
     def plot_accleration(self, axis='all'):
         plt.figure() # there is almost deffiently a better way to have multiple plots
         if axis=='all':
@@ -139,3 +119,25 @@ class deadReckoning:
     def show_plots(self):
         # this feels stupid but I don't know a better way to get the behavior I want
         plt.show()
+        
+class deadReckoningMath:
+    """A class for math function related to dead reckonging that we will need in other modules"""
+    def rd2xy(self, displacment, angle):
+        """Change dispacment and roation into xy cordinates"""
+        
+        assert displacment.size == angle.size
+        xy_cords = np.zeros([displacment.size, 2])
+        for i in range(1, displacment.size):
+            xy_cords[i, 0] = xy_cords[i-1, 0] + (displacment[i] * np.cos(angle[i]))
+            xy_cords[i, 1] = xy_cords[i-1, 1] + (displacment[i] * np.sin(angle[i]))
+            
+        return xy_cords
+        
+    def plot_trajectory(self, xy_cords):
+        plt.figure()
+        plt.plot(xy_cords[:,0], xy_cords[:,1], '-.')
+        plt.title("Trajectory")
+        plt.xlabel("X (m)")
+        plt.ylabel("Y (m)")
+        plt.show(block=False)
+    
