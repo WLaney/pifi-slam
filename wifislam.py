@@ -86,21 +86,21 @@ class Slam:
     # predicts the vector h of all predicted wifi measurements for a single access point
     # h[i] = a single prediction
     def predict_h_wifi(self):
-        assert self.position.shape[0] == self.wifi_data.shape[0]
+        assert self.position.shape[0] == self.wifi_measurments.shape[0]
         
         # we should be returning predictions in an identical form as the input
-        pred_wifi_matrix = np.empty(wifi_data.shape)
+        pred_wifi_matrix = np.empty(self.wifi_measurments.shape)
         # making identical means lots of NaNs
         pred_wifi_matrix[:] = np.NaN
         
         # loop over the diffrent access points
-        for wap in range(wifi_data.shape[1]):
+        for wap in range(self.wifi_measurments.shape[1]):
             
             # get the real wifi measurment and the corosponding movment measurments
             # we can use the real_wif_index to put the NaNs back at the end
-            real_wifi_index = ~np.isnan(wifi_data[:,wap])
-            real_wifi = wifi_data[real_wifi_index:,wap]
-            wifi_move_data = self.move_data_xy[real_wifi_index]
+            real_wifi_index = ~np.isnan(self.wifi_measurments[:,wap])
+            real_wifi = self.wifi_measurments[real_wifi_index:,wap]
+            wifi_move_data = self.positon_xy[real_wifi_index,:]
         
             # to get z_wifi
             # 1. take column from wifi_data (for a single AP)
@@ -164,7 +164,7 @@ class Slam:
             
         return gyro
         
-    def calc_jacobian(self):
+    def calc_jacobian(self, h_wifi, robot_position):
         """Find the jacobian of the state space and measurment predictions"""
         
         # the jacbobian should be a square matrix and repesent all the state vairables
@@ -195,17 +195,70 @@ class Slam:
             jac[i,i] = -1
             jac[i, i+1] = 1
             
-        # now we need to fill in the h_wifi derivates, this is more complicated so the math is done in it's
-        # own function.
+        # now we need to fill in the h_wifi derivates, this is more complicated so the actual math is done
+        # in helper functions
         
         # all of the h_wifi derivates need the jacobain of the x state space with respect to the state
-        # variables, that's a constan so we will find it here
-        jac_xy_dp = self.jacobian_xy_dp(h_wifi, robot_position)
+        # variables, that's a constan so we will find it here, out of the loops
+        # the followin function creates a class vairbale for it
+        self.jacobian_xy_dp(robot_position)
         
-        # The indexing is also annoy
-        #for i in range(self.num_dist_meas+self.num_gyro_angles, self.total_meas):
+        # set up counter so we know what row of the jacobian we should write the wifi derivates to
+        jac_wifi_row = self.num_dist_meas+self.num_gyro_angles
+        
+        # Now we loop through all the wifi real (real meaning not NaN) measurments
+        for wap in range(self.wifi_measurments.shape[1]):
             
-    def jacobian_xy_dp(self, h_wifi, robot_position):
+            # get the real wifi measurment and the corosponding movment measurments
+            real_wifi_index = ~np.isnan(self.wifi_measurments[:,wap])
+            real_wifi = self.wifi_measurments[real_wifi_index:,wap]
+            real_predict_wifi = h_wifi[real_wifi_index:,wap]
+        
+            for i in range(real_wifi.shape[0]):
+                # get the predicted value for this wifi measurment
+                h_wifi_i = real_predict_wifi[i,j]
+                wifi_dervivative = self.calc_wifi_derivative(i, real_wifi, h_wifi_i, real_wifi_index)
+                jac[jac_wifi_row,:] = wifi_dervivative
+                jac_wifi_row += 1
+                
+        return jac
+        
+    def calc_wifi_derivative(self, index, real_wifi, h_wifi_i, real_wifi_index):
+        
+        # pre allocate the derivate vecotr
+        wifi_dervivative = zeros(self.positon_xy.shape[0])
+        
+        # get the xy postion corrosponding the value we're taking the derivate for
+        position_i = self.positon_xy[index,:]
+        
+        # get the xy postions of the real wifi measurments
+        wifi_move_data = self.positon_xy[real_wifi_index,:]
+        
+        # get beta outside the loop
+        beta = self.calc_beta(index, self.positon_xy[real_wifi_index,:])
+        
+        # loop through all the wifi measumrents values from the access point h_wifi_i is from
+        # and get the derivate infromation for that point. Each measurment gives four derivates values to 
+        # put in the derivate vecotr: d/dxi, d/dxj, d/dyi, and d/dyj
+        # at each iteration of the loop these values add to the final derivate vector
+        for j in range(real_wifi.length):
+            # calculate the sclar portion
+            scaler = beta[j] * (real_wifi[j] - h_wifi_i) * (-1/(2*self.tau**2))
+            # get the diffrences between the x and y values
+            x_diff = wifi_move_data[j,0] - position_i[0]
+            y_diff = wifi_move_data[j,1] - position_i[1]
+            # get the actual derivate values
+            # the two values come from the expoentnts in the equlidean distance squard formula
+            # the sign is what is being subtracted from in the diffrence
+            d_dxi = sclar * -2 * x_diff
+            d_dxj = sclar * 2 * x_diff
+            d_dyi = sclar * -2 * y_diff
+            d_dyj = sclar * 2 * y_diff
+            
+            # now we have to add these derivate values to the proper places in derivate matrix
+        
+            
+    def jacobian_xy_dp(self, robot_position):
         
         # the resulting jaconian needs to be MxN where M is the number of X cords the number of Y cords
         # N is the length of the state space vecotr
@@ -243,8 +296,8 @@ class Slam:
         wifi_derv = np.zeros([self.num_dist * 2, self.num_wifi_meas])
         
         # combine everything together into the final jacobian matrix
-        jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
+        self.jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
         
-        return jac_xy_dp
+        return self.jac_xy_dp
             
         
