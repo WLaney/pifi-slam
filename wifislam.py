@@ -16,7 +16,7 @@ class Slam:
         self.wifi_measurments = wifi_data
         
         # get the dead reckong math functions, these allow us to go between XY and D-Phi space
-        self.drm = dead_reckoning.deadReckonginMath()
+        self.drm = dead_reckoning.deadReckoningMath()
         
         # variances
          # TODO look up the values I experemntly found for these
@@ -28,11 +28,13 @@ class Slam:
         self.tau = 2 # scale parameter repesting the distance between walls
         
         # get the total number of measuremnts of each type we have
-        self.num_dist_meas = self.movement_data.size[0]
-        self.num_gyro_meas = self.movement_data.size[0]
+        #self.num_dist = self.movement_measurments.shape[0] + 1
+        #self.num_angle = self.movement_measurments.shape[0] + 1
+        self.num_dist = self.movement_measurments.shape[0]
+        self.num_angle = self.movement_measurments.shape[0] 
         self.num_wifi_meas = np.sum(~np.isnan(self.wifi_measurments))
         # get the total number of measurments, this is the size of the state vecotr
-        self.total_meas = self.num_dist_meas + self.num_gyro_meas + self.num_wifi_meas
+        self.total_meas = self.num_dist + self.num_angle + self.num_wifi_meas
         
     def solve_slam(self):
         
@@ -64,7 +66,7 @@ class Slam:
             diff_gyro *= (1/self.var_gyro)
             
             # calcuate the jacobian
-            jac = self.calc_jacobian()
+            jac = self.calc_jacobian(h_wifi, robot_position)
             
             # formulat diffrences into a giant vector
             
@@ -92,7 +94,7 @@ class Slam:
         pred_wifi_matrix[:] = np.NaN
         
         # loop over the diffrent access points
-        for wap in range(wifi_data.shape[1])
+        for wap in range(wifi_data.shape[1]):
             
             # get the real wifi measurment and the corosponding movment measurments
             # we can use the real_wif_index to put the NaNs back at the end
@@ -157,11 +159,92 @@ class Slam:
         """
         # pre allocate output
         gyro = np.zeros(angels.size -1)
-        for i = range(angles.size-1):
-            gyro(i) = angles(i+1) - angles(i)
+        for i in range(angles.size-1):
+            gyro[i] = angles(i+1) - angles(i)
             
         return gyro
         
     def calc_jacobian(self):
         """Find the jacobian of the state space and measurment predictions"""
-        jac = np.zeros([total_meas, total_meas])
+        
+        # the jacbobian should be a square matrix and repesent all the state vairables
+        # the order of the variables is all the distance measurments, then all the gyro measurments
+        # then all the wifi measurments in order of access point as defined in the measurment matrix
+        # J = [[hd_1/dd1,...,hd_1/ddtheta1,..., hd_1/ddwifi]
+        #      [.                .                       .]
+        #      [.                .                       .]
+        #      [.                .                       .]
+        #      [hgyro_1/dd1,...,hgyro_1/ddtheta1,...,hgyro_1/ddwifi]
+        #      [.                .                       .]
+        #      [.                .                       .]
+        #      [.                .                       .]
+        #      [hwifi_1/dd1,...,hwifi_1/ddtheta1,...hwifi_1/ddwifi]
+        
+        jac = np.zeros([self.total_meas, self.total_meas])
+        
+        # sice the distance measurmetnts predictions are based only on the distance the derivates are 1
+        # for the measurment in questoin and zero everywhere else
+        # ie hd_1/dd1 = 1 and hd_1/dd2 = 0 hd_1/ddthetaN = 0, hd_1/ddwifiN = 0
+        # this means the secion of the jacobian concerned with the derivates of h_distance is a idently matrix
+        jac[:self.num_dist,:self.num_dist] = np.eye(self.num_dist)
+        
+        # the gyro measurments are based on angle theta_i and theta_i+1
+        # this means for each gyro measurment prediction there are non zero derivates for theta_i and theta_i+1
+        # these derivates will be -1 and 1 repspectfuly
+        for i in range(self.num_dist_meas, self.num_dist_meas+self.num_gyro_angles-1):
+            jac[i,i] = -1
+            jac[i, i+1] = 1
+            
+        # now we need to fill in the h_wifi derivates, this is more complicated so the math is done in it's
+        # own function.
+        
+        # all of the h_wifi derivates need the jacobain of the x state space with respect to the state
+        # variables, that's a constan so we will find it here
+        jac_xy_dp = self.jacobian_xy_dp(h_wifi, robot_position)
+        
+        # The indexing is also annoy
+        #for i in range(self.num_dist_meas+self.num_gyro_angles, self.total_meas):
+            
+    def jacobian_xy_dp(self, h_wifi, robot_position):
+        
+        # the resulting jaconian needs to be MxN where M is the number of X cords the number of Y cords
+        # N is the length of the state space vecotr
+        #
+        # to create this matrix we are going to create three smaller matricies and concatnate them into the
+        # full matrix.
+        # The first matrix will be the distance derivates for each cordinate
+        # the second matrix will be the angle derivates for each cordinate
+        # the third matrix will be the wifi derivates for each cordinate, this matrix will be all zeros
+        
+        # we multisply the number of distnace by 2 for the rows because each distance is giving us an x and a
+        # y corridinate
+        distance_derv = np.zeros([self.num_dist * 2, self.num_dist])
+        
+        # i represent the X-Y pair we're on
+        # meas_num is a second counter to keep track of what distnace we're on, we could derive this
+        # from the loop counter but I think a second counter cuts down on confustin
+        # every distance leads to an 1 X positoin and 1 Y position
+        meas_num = 0
+        for i in range(0,self.num_dist*2, 2):
+            distance_derv[i::2, meas_num] = np.cos(robot_position[meas_num,1])
+            distance_derv[i+1::2, meas_num] = np.sin(robot_position[meas_num,1])
+            meas_num += 1
+        print(distance_derv)
+        # we're now going to creata the angle derivatives with the same logic
+        angle_derv = np.zeros([self.num_angle * 2, self.num_angle])
+        meas_num = 0
+        for i in range(0,self.num_angle*2, 2):
+            angle_derv[i::2, meas_num] = -1 * robot_position[meas_num,0] * np.sin(robot_position[meas_num,1])
+            angle_derv[i+1::2, meas_num] = robot_position[meas_num,0] * np.cos(robot_position[meas_num,1])
+            meas_num += 1
+        print(angle_derv)
+            
+        # finaly create a zero matrix representing the derivates with respect to the wifi stengths
+        wifi_derv = np.zeros([self.num_dist * 2, self.num_wifi_meas])
+        
+        # combine everything together into the final jacobian matrix
+        jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
+        
+        return jac_xy_dp
+            
+        
