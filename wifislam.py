@@ -22,10 +22,17 @@ class Slam:
          # TODO look up the values I experemntly found for these
         self.var_dis = 1
         self.var_gyro = 1
-        #self.var_wifi = 
+        self.var_wifi = 1
         
         # other variables
         self.tau = 2 # scale parameter repesting the distance between walls
+        
+        # get the total number of measuremnts of each type we have
+        self.num_dist_meas = self.movement_data.size[0]
+        self.num_gyro_meas = self.movement_data.size[0]
+        self.num_wifi_meas = np.sum(~np.isnan(self.wifi_measurments))
+        # get the total number of measurments, this is the size of the state vecotr
+        self.total_meas = self.num_dist_meas + self.num_gyro_meas + self.num_wifi_meas
         
     def solve_slam(self):
         
@@ -38,15 +45,26 @@ class Slam:
             self.positon_xy = self.drm.rd2xy(robot_position)
             
             # calulate predicted WiFi measurments
+            h_wifi = self.predict_h_wifi()
             
             # calculate predicted gyro measurments
+            h_gyro = self.predict_h_gyro(robot_position[:,1])
             
             # do not need to calculate predicted distance meaurments because we "measure that directly"
             # if the paper cheats we get to cheat too
             
             # calculate the diffrence between predicted and real measurments
+            diff_wifi = self.wifi_measurments - h_wifi
+            diff_dist = self.movement_measurments[:,0] - robot_position[:,0]
+            diff_gyro = self.movement_measurments[:,1] - h_gyro
+            
+            # multipy in the inverse variance of the sensors into the diffrences
+            diff_wifi *= (1/self.var_wifi)
+            diff_dist *= (1/self.var_dist)
+            diff_gyro *= (1/self.var_gyro)
             
             # calcuate the jacobian
+            jac = self.calc_jacobian()
             
             # formulat diffrences into a giant vector
             
@@ -129,3 +147,21 @@ class Slam:
         
         return beta
         
+    def predict_h_gyro(self, angles):
+        """"Use angels to predit gyroscope measurments
+        
+        Inputs:
+            angles: N length vector of headings
+        Outputs:
+            N-1 length vector of gyroscope readings
+        """
+        # pre allocate output
+        gyro = np.zeros(angels.size -1)
+        for i = range(angles.size-1):
+            gyro(i) = angles(i+1) - angles(i)
+            
+        return gyro
+        
+    def calc_jacobian(self):
+        """Find the jacobian of the state space and measurment predictions"""
+        jac = np.zeros([total_meas, total_meas])
