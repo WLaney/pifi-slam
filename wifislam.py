@@ -37,6 +37,9 @@ class Slam:
         self.total_meas = self.num_dist + self.num_angle + self.num_wifi_meas
         
     def solve_slam(self):
+        # inizial the state, we should probably not actual use all zeros for this
+        robot_position = zeros([self.num_dist, 2])
+        wifi_state = zeros(num_wifi_meas)
         
         convered = False
         converg_threshold = 0.1 # I made this up
@@ -69,8 +72,17 @@ class Slam:
             jac = self.calc_jacobian(h_wifi, robot_position)
             
             # formulat diffrences into a giant vector
+            # first we need to put the wifi data into a vector, we flattern and then get rid of the naps
+            diff_wifi_vector = np.diff_wifi.flatten('F')
+            diff_wifi_vector = diff_wifi_vector[~np.isnan(diff_wifi_vector)]
+            # concatinate everything
+            diff_vector = np.concatenate((diff_dist, diff_gyro, diff_wifi_vector))
+            
+            # so the same for the state
+            state_vecotr = np.concatenate((robot_position.flatten('F'), wifi_state))
             
             # solve for correction and adjust the state vector
+            correction = np.linalg.solve(jac, diff_vector)
             
             # check if convergence critera is met
             if np.mean(correction) < converg_threshold:
@@ -80,6 +92,12 @@ class Slam:
                 convered = True
                 
             # reformulat new state vecotr back into a sane repsentatoin
+            state_vecotr = state_vecotr + correction
+            robot_position[:,0] = state_vecotr[0:self.num_dist]
+            robot_position[:,1] = state_vecotr[self.num_dist:self.num_dist + self.num_angle]
+            wifi_state = state_vecotr[-self.num_wifi_meas:]
+            
+        return robot_position
 
 
     # def_h_wifi
@@ -234,6 +252,14 @@ class Slam:
         # get the xy postions of the real wifi measurments
         wifi_move_data = self.positon_xy[real_wifi_index,:]
         
+        # get where the derivates values should go in the derivate vector
+        # the vecotr goes [x1, y1, x2, y2,...]
+        # this is the x postion, we multiply by two to skip the ys
+        x_incds = 2 * np.nonzero(real_wifi_index)[0]  # I hate numpy somtimes
+        
+        # get index for the i derivative
+        x_i_inc = x_incds[index]
+        
         # get beta outside the loop
         beta = self.calc_beta(index, self.positon_xy[real_wifi_index,:])
         
@@ -256,6 +282,13 @@ class Slam:
             d_dyj = sclar * 2 * y_diff
             
             # now we have to add these derivate values to the proper places in derivate matrix
+            x_j_inc = x_incds[j]
+            wifi_dervivative[x_i_inc] += d_dxi
+            wifi_dervivative[x_i_inc + 1] += d_dyi
+            wifi_dervivative[x_j_inc] += d_dxj
+            wifi_dervivative[x_j_inc +1] += d_dyj
+            
+        return wifi_dervivative
         
             
     def jacobian_xy_dp(self, robot_position):
