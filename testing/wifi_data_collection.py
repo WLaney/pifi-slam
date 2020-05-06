@@ -2,7 +2,7 @@
 import subprocess
 import time
 import RPi.GPIO as GPIO
-
+import json
 
 
 class Collection:
@@ -11,6 +11,9 @@ class Collection:
 
         # collection boolean
         self.collecting = False
+
+        # dictionary (to be outputted as json file)
+        self.wifi_data = {}
 
         # set up GPIO
         GPIO.setmode(GPIO.BCM)  # Set for broadcom numbering, not board numbers
@@ -36,10 +39,6 @@ class Collection:
         quit()
 
     def run(self):
-        # Create a file for each WiFi adapter
-        f = open('wifi.txt', 'w' )
-
-        # Create a count variable
         count = 0
 
         # Wait for user to push 'start' button
@@ -52,20 +51,22 @@ class Collection:
 
         while self.collecting:
             try:
-                p = subprocess.check_output(self.cmd3, shell=True)
-                f.write("Iteration " + str(count) + '\n\n')
-                f.write(p.decode())
-                count += 1
-                print(time.time())
+                p = subprocess.check_output(self.cmd0, shell=True)
+                t = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
+                self.wifi_data[t] = p.decode()
             except subprocess.CalledProcessError:
                 print("wlan0 was busy")
                 time.sleep(0.1)
-                count += 1
             finally:
-                print("iteration " + str(count))
+                print("count = " + str(count))
+                count += 1
         
         # User has pushed button 17 again (stop).
-        f.close()
+        
+        # Create a file for each WiFi adapter
+        print(json.dumps(self.wifi_data))
+
+        #f = open('wifi.txt', 'w' )
         GPIO.cleanup()
         print("Done")
 
