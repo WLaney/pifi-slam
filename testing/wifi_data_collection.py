@@ -3,7 +3,8 @@ import subprocess
 import time
 import RPi.GPIO as GPIO
 import json
-
+import re
+import csv
 
 class Collection:
 
@@ -12,8 +13,11 @@ class Collection:
         # collection boolean
         self.collecting = False
 
-        # dictionary (to be outputted as json file)
-        self.wifi_data = {}
+        # list of wifi data
+        self.wifi_list = []
+
+        # list to look up recognized MAC addresses
+        self.mac_list = []
 
         # set up GPIO
         GPIO.setmode(GPIO.BCM)  # Set for broadcom numbering, not board numbers
@@ -25,7 +29,7 @@ class Collection:
         # WiFi data collection commands
         self.cmd0 = 'sudo iwlist wlan0 scan | egrep "Cell|ESSID|Signal"'
         self.cmd1 = 'sudo iwlist wlan1 scan | egrep "Cell|ESSID|Signal"'
-        self.cmd2 = 'sudo iwlist wlan0 scan'
+        self.cmd2 = 'sudo iwlist wlan0 scan | egrep "Cell|Signal"'
         self.cmd3 = 'sudo iw dev wlan0 scan'
 
     def button_press(self, num):
@@ -38,7 +42,7 @@ class Collection:
         GPIO.cleanup()
         quit()
 
-    def run(self):
+    def collect(self):
         count = 0
 
         # Wait for user to push 'start' button
@@ -51,9 +55,13 @@ class Collection:
 
         while self.collecting:
             try:
-                p = subprocess.check_output(self.cmd0, shell=True)
+                p = subprocess.check_output(self.cmd2, shell=True)
                 t = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-                self.wifi_data[t] = p.decode()
+                elem = []
+                elem.append(t)
+                elem.append(p.decode())
+                self.wifi_list.append(elem)
+                print(p.decode())
             except subprocess.CalledProcessError:
                 print("wlan0 was busy")
                 time.sleep(0.1)
@@ -62,14 +70,67 @@ class Collection:
                 count += 1
         
         # User has pushed button 17 again (stop).
-        
-        # Create a file for each WiFi adapter
-        print(json.dumps(self.wifi_data))
 
-        #f = open('wifi.txt', 'w' )
+        #print(self.wifi_list)
+
         GPIO.cleanup()
-        print("Done")
+        print("WiFi data collection complete.")
+        
+    def make_csv(self):
+        #TODO make the csv filename like the imu csv one (with the date and all)
+        with open('wifi_data.csv', 'w') as f:
+            writer = csv.writer(f)
+            for item in self.wifi_list:
+                t = item[0]
+                s = item[1]
+            
+                # Build list of MAC addresses sensed in this sample.
+                # Note: re.findall() returns list of found re's in the order of occurence in the source string.
+                adr = re.compile(r'\w\w:\w\w:\w\w:\w\w:\w\w:\w\w')
+                addresses = adr.findall(s)
+
+                # Build list of signal strengths.
+                sig = re.compile(r'level=.* dBm')
+                sigs = sig.findall(s)
+
+                # Convert sigs from list of strings to list of ints
+                for i in range(len(sigs)):
+                    sa      = sigs[i]
+                    sb      = sa.split()
+                    sc      = sb[0][6:]
+                    sigs[i] = int(sc)
+                
+                # Add unknown MAC addresses to self.mac_list
+                for a in addresses:
+                    # If the MAC address is not already in self.mac_list, add it
+                    if a not in self.mac_list:
+                        self.mac_list.append(a)
+                
+                # Create an empty list of length "len(self.mac_list) + 1".
+                # + 1 because column 0 is the timestamp of the measurement.
+                # The rest of the columns represent signal strengths from a given access point.
+                line = []
+                line_len = len(self.mac_list) + 1
+                for i in range(line_len):
+                    line.append(float("NaN"))
+
+                line[0] = t
+
+                # Now, loop back through the self.mac_list.
+                for i in range(line_len - 1):
+                    # If the address in self.mac_list is also in the list of addresses recorded in this reading, write it's signal strength in the corresponding column (index) in line
+                    mac = self.mac_list[i]
+                    if mac in addresses:
+                        # Get the index of the address in "addresses"
+                        idx = addresses.index(mac)
+                        # Add signal value into correct column
+                        line[i + 1] = sigs[idx]
+
+                # line is written. Now, just add line to the csv file
+                writer.writerow(line)
+
 
 if __name__ == "__main__":
     a = Collection()
-    a.run()
+    a.collect()
+    a.make_csv()
