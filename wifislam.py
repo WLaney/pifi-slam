@@ -211,7 +211,7 @@ class Slam:
         # the gyro measurments are based on angle theta_i and theta_i+1
         # this means for each gyro measurment prediction there are non zero derivates for theta_i and theta_i+1
         # these derivates will be -1 and 1 repspectfuly
-        for i in range(self.num_dist_meas, self.num_dist_meas+self.num_gyro_angles-1):
+        for i in range(self.num_dist, self.num_dist+self.num_angle-1):
             jac[i,i] = -1
             jac[i, i+1] = 1
             
@@ -220,18 +220,20 @@ class Slam:
         
         # all of the h_wifi derivates need the jacobain of the x state space with respect to the state
         # variables, that's a constan so we will find it here, out of the loops
-        jac_xy_dp = jacobian_xy_dp(robot_position)
+        jac_xy_dp = self.jacobian_xy_dp(robot_position)
         
         # set up counter so we know what row of the jacobian we should write the wifi derivates to
-        jac_wifi_row = self.num_dist_meas+self.num_gyro_angles
+        jac_wifi_row = self.num_dist+self.num_gyro
         
         # Now we loop through all the wifi real (real meaning not NaN) measurments
         for wap in range(self.wifi_measurments.shape[1]):
             
             # get the real wifi measurment and the corosponding movment measurments
-            real_wifi_index = ~np.isnan(self.wifi_measurments[:,wap])
-            real_wifi = self.wifi_measurments[real_wifi_index:,wap]
-            real_predict_wifi = h_wifi[real_wifi_index:,wap]
+            real_wifi_indecies = ~np.isnan(self.wifi_measurments[:,wap])
+            print(real_wifi_indecies)
+            print(self.wifi_measurments)
+            real_wifi = self.wifi_measurments[real_wifi_indecies,wap]
+            real_predict_wifi = h_wifi[real_wifi_indecies,wap]
         
             for i in range(real_wifi.shape[0]):
                 # get the predicted value for this wifi measurment
