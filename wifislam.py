@@ -101,12 +101,10 @@ class Slam:
             diff_wifi_vector = diff_wifi_vector[~np.isnan(diff_wifi_vector)]
             # concatinate everything
             diff_vector = np.concatenate((diff_dist, diff_gyro, diff_wifi_vector))
-            print(diff_vector.shape)
             # so the same for the state
-            state_vecotr = np.concatenate((robot_position[:-1,:].flatten('F'), wifi_state))
-            print(state_vecotr.shape)
+            state_vecotr = np.concatenate((robot_position.flatten('F'), wifi_state))
             # solve for correction and adjust the state vector
-            correction = np.linalg.lstsq(jac, diff_vector)
+            correction = np.linalg.lstsq(jac, diff_vector, rcond=None)
             # check if convergence critera is met
             if np.mean(correction[0]) < converg_threshold:
                 # if on average nothing is changing by more than 0.1 say we're convered
@@ -116,8 +114,8 @@ class Slam:
                 
             # reformulat new state vecotr back into a sane repsentatoin
             state_vecotr = state_vecotr + correction[0]
-            robot_position[:-1,0] = state_vecotr[0:self.num_dist]
-            robot_position[:-1,1] = state_vecotr[self.num_dist:self.num_dist + self.num_gyro]
+            robot_position[:,0] = state_vecotr[0:self.num_angle]
+            robot_position[:,1] = state_vecotr[self.num_angle:self.num_angle + self.num_angle]
             wifi_state = state_vecotr[-self.num_wifi_meas:]
             
         return robot_position
@@ -221,7 +219,8 @@ class Slam:
             distance/angles
         
         Outputs:
-            jac: Jacobian matrix for the state. NxN matirx where N is the number of measurments
+            jac: Jacobian matrix for the state. NxM matirx where N is the number of measurments, and M is
+                the size of the state space. M=N+2
         """
         
         # the jacbobian should be a square matrix and repesent all the state vairables
@@ -237,7 +236,7 @@ class Slam:
         #      [.                .                       .]
         #      [hwifi_1/dd1,...,hwifi_1/ddtheta1,...hwifi_1/ddwifi]
         
-        jac = np.zeros([self.total_meas, self.total_meas])
+        jac = np.zeros([self.total_meas, self.total_meas+2])
         
         # sice the distance measurmetnts predictions are based only on the distance the derivates are 1
         # for the measurment in questoin and zero everywhere else
@@ -248,9 +247,9 @@ class Slam:
         # the gyro measurments are based on angle theta_i and theta_i+1
         # this means for each gyro measurment prediction there are non zero derivates for theta_i and theta_i+1
         # these derivates will be -1 and 1 repspectfuly
-        for i in range(self.num_dist, self.num_dist+self.num_angle-1):
-            jac[i,i] = -1
-            jac[i, i+1] = 1
+        for i in range(self.num_dist+1, self.num_dist+1+self.num_angle-1):
+            jac[i-1,i] = -1
+            jac[i-1, i+1] = 1
             
         # now we need to fill in the h_wifi derivates, this is more complicated so the actual math is done
         # in helper functions
@@ -370,7 +369,7 @@ class Slam:
         
         # we multisply the number of distnace by 2 for the rows because each distance is giving us an x and a
         # y corridinate
-        distance_derv = np.zeros([self.num_dist * 2, self.num_dist])
+        distance_derv = np.zeros([(self.num_dist * 2), self.num_dist + 1])
         
         # i represent the X-Y pair we're on
         # meas_num is a second counter to keep track of what distnace we're on, we could derive this
@@ -383,7 +382,7 @@ class Slam:
             meas_num += 1
         #print(distance_derv)
         # we're now going to creata the angle derivatives with the same logic
-        angle_derv = np.zeros([self.num_gyro * 2, self.num_gyro])
+        angle_derv = np.zeros([self.num_gyro * 2, self.num_gyro+1])
         meas_num = 0
         for i in range(0,self.num_gyro*2, 2):
             angle_derv[i::2, meas_num] = -1 * robot_position[meas_num,0] * np.sin(robot_position[meas_num,1])
@@ -392,10 +391,11 @@ class Slam:
         #print(angle_derv)
             
         # finaly create a zero matrix representing the derivates with respect to the wifi stengths
+        # add one to the number of wifi measurments for the last angle dosent get used
         wifi_derv = np.zeros([self.num_dist * 2, self.num_wifi_meas])
         
         # combine everything together into the final jacobian matrix
-        self.jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
+        jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
         
         return jac_xy_dp
             
