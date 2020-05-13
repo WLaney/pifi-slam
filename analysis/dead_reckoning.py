@@ -27,6 +27,10 @@ class deadReckoning:
         # ths determines the total size of our new arrays
         self.total_offset = self.win_size + self.start_offset
         
+        # these are the time stamps that the distances and angles are assosated with
+        # need to subtract start offset by one to compenstate for zero indexing
+        self.outtime = self.time[self.start_offset-1: -self.win_size]
+        
     def data_stats(self):
         print("Number of data reads: " + str(self.time.size))
         print("Time accounted for: " + str(self.time[-1] - self.time[1]))

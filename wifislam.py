@@ -40,8 +40,8 @@ class Slam:
         
     def solve_slam(self):
         # inizial the state, we should probably not actual use all zeros for this
-        robot_position = zeros([self.num_angle, 2])
-        wifi_state = zeros(num_wifi_meas)
+        robot_position = np.zeros([self.num_angle, 2])
+        wifi_state = np.zeros(self.num_wifi_meas)
         
         convered = False
         converg_threshold = 0.1 # I made this up
@@ -106,7 +106,7 @@ class Slam:
     # predicts the vector h of all predicted wifi measurements for a single access point
     # h[i] = a single prediction
     def predict_h_wifi(self):
-        assert self.position.shape[0] == self.wifi_measurments.shape[0]
+        assert self.positon_xy.shape[0] == self.wifi_measurments.shape[0]
         
         # we should be returning predictions in an identical form as the input
         pred_wifi_matrix = np.empty(self.wifi_measurments.shape)
@@ -119,7 +119,7 @@ class Slam:
             # get the real wifi measurment and the corosponding movment measurments
             # we can use the real_wif_index to put the NaNs back at the end
             real_wifi_index = ~np.isnan(self.wifi_measurments[:,wap])
-            real_wifi = self.wifi_measurments[real_wifi_index:,wap]
+            real_wifi = self.wifi_measurments[real_wifi_index,wap]
             wifi_move_data = self.positon_xy[real_wifi_index,:]
         
             # to get z_wifi
@@ -129,7 +129,7 @@ class Slam:
             pred_wifi = np.zeros(real_wifi.shape)
             for i in range(real_wifi.shape[0]):
                 beta = self.calc_beta(i, wifi_move_data)
-                pred_wifi[i] = np.transpose(beta) * real_wifi
+                pred_wifi[i] = np.matmul(np.transpose(beta),real_wifi)
                 
             # put the prediced WiFi data back into a vecor with the NaN
             # if preformace becomes an issue we should do this without the temp variabel.
