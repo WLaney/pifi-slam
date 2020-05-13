@@ -43,10 +43,12 @@ class deadReckoning:
         
         # we need the first item in ax for intial time, so we always have ax-1 measurments
         # in this contexted the displacment is the distance in each time step, not the total distance traveld
-        displacment = np.zeros(axis.size - self.total_offset)
+        
+        # we add an extra zero at the end end to make indexing match up with the gyro/angle stuff
+        # I don't love it but I think it's what we need to do to make everything work
+        displacment = np.zeros(axis.size - self.total_offset + 1)
         self.velocity = np.zeros(axis.size - self.total_offset)
-        print(self.velocity.size)
-        self.total_displacment = np.zeros(axis.size - self.total_offset)
+        self.total_displacment = np.zeros(axis.size - self.total_offset + 1)
         axis -= np.mean(axis[0:self.start_offset]) # this needs to be improved
         for i in range(self.start_offset, axis.size-self.win_size):
             #delta_t = 0.05
@@ -58,13 +60,15 @@ class deadReckoning:
             self.velocity[i-self.start_offset] = v_prev
             self.total_displacment[i - self.start_offset] = \
                 displacment[i - self.start_offset] + self.total_displacment[i - self.start_offset - 1]
-            
+            # manufaly add the last point in to total displacment so plots look good
+            self.total_displacment[-1] = self.total_displacment[-2]
         return displacment
         
     def rotation_from_wz(self):
         # in this contexted the displacment is the distance in each time step, not the total distance traveld
-        angle = np.zeros(self.wz.size - self.total_offset)
-        for i in range(self.start_offset, self.wz.size-self.win_size):
+        # the intial angle must be zero, and we should have one more angle than we do gyro measurments
+        angle = np.zeros(self.wz.size - self.total_offset + 1)
+        for i in range(self.start_offset + 1, self.wz.size-self.win_size):
             delta_t = self.time[i] - self.time[i-1]
             angle[i - self.start_offset] = angle[i - self.start_offset - 1] + (self.wz[i] * delta_t)
                 
