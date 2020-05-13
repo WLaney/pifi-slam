@@ -13,8 +13,18 @@ class Collection:
         # collection boolean
         self.collecting = False
 
+        # list of timestamps
+        self.timestamps = []
+
         # list of wifi data
-        self.wifi_list = []
+        self.wifi_raw = []
+
+        # extracted wifi data: list of [ [list of addresses], [list of signals] ]
+        self.wifi_data = []
+
+        # total number of access points detected throughout data collection
+        # this will be known as "M"
+        self.mac_list_len = 0
 
         # list to look up recognized MAC addresses
         self.mac_list = []
@@ -57,11 +67,9 @@ class Collection:
             try:
                 p = subprocess.check_output(self.cmd2, shell=True)
                 t = time.clock_gettime(time.CLOCK_MONOTONIC_RAW)
-                elem = []
-                elem.append(t)
-                elem.append(p.decode())
-                self.wifi_list.append(elem)
-                print(p.decode())
+                self.timestamps.append(t)
+                self.wifi_raw.append(p.decode())
+                #print(p.decode())
             except subprocess.CalledProcessError:
                 print("wlan0 was busy")
                 time.sleep(0.1)
@@ -71,60 +79,75 @@ class Collection:
         
         # User has pushed button 17 again (stop).
 
-        #print(self.wifi_list)
+        assert len(self.timestamps) == len(self.wifi_raw)
 
         GPIO.cleanup()
         print("WiFi data collection complete.")
-        
+    
+    def extract_data(self):
+        for item in self.wifi_raw:
+            # Build list of MAC addresses sensed in this sample (item).
+            # Note: re.findall() returns list of found re's in the order of occurrence in the source string.
+            adr = re.compile(r'\w\w:\w\w:\w\w:\w\w:\w\w:\w\w')
+            addresses = adr.findall(item)
+
+            # Build list of signal strengths.
+            sig = re.compile(r'level=.* dBm')
+            sigs = sig.findall(item)
+
+            # Convert sigs from list of strings to list of ints
+            for i in range(len(sigs)):
+                sa      = sigs[i]
+                sb      = sa.split()
+                sc      = sb[0][6:]
+                sigs[i] = int(sc)
+
+            # Make an entry to self.wifi_data that includes addresses and sigs
+            entry = [addresses, sigs]
+
+            # Add entry to self.wifi_data
+            self.wifi_data.append(entry)
+
+            # Add unknown MAC addresses to self.mac_list
+            for a in addresses:
+                # If the MAC address is not already in self.mac_list, add it
+                if a not in self.mac_list:
+                    self.mac_list.append(a)
+                    self.mac_list_len += 1
+
+        assert self.mac_list_len == len(self.mac_list)
+
     def make_csv(self):
         #TODO make the csv filename like the imu csv one (with the date and all)
+        line_len = self.mac_list_len + 1
         with open('wifi_data.csv', 'w') as f:
             writer = csv.writer(f)
-            for item in self.wifi_list:
-                t = item[0]
-                s = item[1]
-            
-                # Build list of MAC addresses sensed in this sample.
-                # Note: re.findall() returns list of found re's in the order of occurence in the source string.
-                adr = re.compile(r'\w\w:\w\w:\w\w:\w\w:\w\w:\w\w')
-                addresses = adr.findall(s)
-
-                # Build list of signal strengths.
-                sig = re.compile(r'level=.* dBm')
-                sigs = sig.findall(s)
-
-                # Convert sigs from list of strings to list of ints
-                for i in range(len(sigs)):
-                    sa      = sigs[i]
-                    sb      = sa.split()
-                    sc      = sb[0][6:]
-                    sigs[i] = int(sc)
-                
-                # Add unknown MAC addresses to self.mac_list
-                for a in addresses:
-                    # If the MAC address is not already in self.mac_list, add it
-                    if a not in self.mac_list:
-                        self.mac_list.append(a)
-                
+            for entry in self.wifi_data:
                 # Create an empty list of length "len(self.mac_list) + 1".
                 # + 1 because column 0 is the timestamp of the measurement.
                 # The rest of the columns represent signal strengths from a given access point.
                 line = []
-                line_len = len(self.mac_list) + 1
                 for i in range(line_len):
                     line.append(float("NaN"))
+                    #TODO may need to make this numpy nan instead of float nan
 
-                line[0] = t
+                # Add timestamp to the line
+                current_idx = self.wifi_data.index(entry)
+                line[0] = self.timestamps[current_idx]
+
+                addresses   = entry[0]
+                sigs        = entry[1]
 
                 # Now, loop back through the self.mac_list.
-                for i in range(line_len - 1):
-                    # If the address in self.mac_list is also in the list of addresses recorded in this reading, write it's signal strength in the corresponding column (index) in line
+                # MUST use an index i in order to append to correct column in line.
+                for i in range(self.mac_list_len):
+                    # If the address in self.mac_list is also in the list of addresses recorded in this entry, write it's signal strength in the corresponding column in line
                     mac = self.mac_list[i]
                     if mac in addresses:
                         # Get the index of the address in "addresses"
                         idx = addresses.index(mac)
                         # Add signal value into correct column
-                        line[i + 1] = sigs[idx]
+                        line[1 + i] = sigs[idx]
 
                 # line is written. Now, just add line to the csv file
                 writer.writerow(line)
@@ -133,4 +156,5 @@ class Collection:
 if __name__ == "__main__":
     a = Collection()
     a.collect()
+    a.extract_data()
     a.make_csv()
