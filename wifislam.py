@@ -31,14 +31,16 @@ class Slam:
         #self.num_dist = self.movement_measurments.shape[0] + 1
         #self.num_angle = self.movement_measurments.shape[0] + 1
         self.num_dist = self.movement_measurments.shape[0]
-        self.num_angle = self.movement_measurments.shape[0] 
+        self.num_gyro = self.movement_measurments.shape[0]
+        # we get one more angle than we do gyro measurment
+        self.num_angle = self.movement_measurments.shape[0] + 1
         self.num_wifi_meas = np.sum(~np.isnan(self.wifi_measurments))
         # get the total number of measurments, this is the size of the state vecotr
-        self.total_meas = self.num_dist + self.num_angle + self.num_wifi_meas
+        self.total_meas = self.num_dist + self.num_gyro + self.num_wifi_meas
         
     def solve_slam(self):
         # inizial the state, we should probably not actual use all zeros for this
-        robot_position = zeros([self.num_dist, 2])
+        robot_position = zeros([self.num_angle, 2])
         wifi_state = zeros(num_wifi_meas)
         
         convered = False
@@ -47,7 +49,7 @@ class Slam:
         max_trys = 5
         while convered is False and trys < max_trys:
             # get the XY repsentation of the robot pose
-            self.positon_xy = self.drm.rd2xy(robot_position)
+            self.positon_xy = self.drm.rd2xy(robot_position[:,0], robot_position[:,1])
             
             # calulate predicted WiFi measurments
             h_wifi = self.predict_h_wifi()
@@ -60,7 +62,7 @@ class Slam:
             
             # calculate the diffrence between predicted and real measurments
             diff_wifi = self.wifi_measurments - h_wifi
-            diff_dist = self.movement_measurments[:,0] - robot_position[:,0]
+            diff_dist = self.movement_measurments[:,0] - robot_position[:-1,0]
             diff_gyro = self.movement_measurments[:,1] - h_gyro
             
             # multipy in the inverse variance of the sensors into the diffrences
@@ -218,8 +220,7 @@ class Slam:
         
         # all of the h_wifi derivates need the jacobain of the x state space with respect to the state
         # variables, that's a constan so we will find it here, out of the loops
-        # the followin function creates a class vairbale for it
-        self.jacobian_xy_dp(robot_position)
+        jac_xy_dp = jacobian_xy_dp(robot_position)
         
         # set up counter so we know what row of the jacobian we should write the wifi derivates to
         jac_wifi_row = self.num_dist_meas+self.num_gyro_angles
@@ -234,40 +235,41 @@ class Slam:
         
             for i in range(real_wifi.shape[0]):
                 # get the predicted value for this wifi measurment
-                h_wifi_i = real_predict_wifi[i,j]
-                wifi_dervivative = self.calc_wifi_derivative(i, real_wifi, h_wifi_i, real_wifi_index)
-                jac[jac_wifi_row,:] = wifi_dervivative
+                h_wifi_i = real_predict_wifi[i]
+                wifi_dervivative = self.calc_wifi_derivative(i, real_wifi, h_wifi_i, real_wifi_indecies)
+                wifi_derivate_dphi_state = np.matmul(wifi_dervivative, jac_xy_dp)
+                jac[jac_wifi_row,:] = wifi_derivate_dphi_state
                 jac_wifi_row += 1
                 
         return jac
         
-    def calc_wifi_derivative(self, index, real_wifi, h_wifi_i, real_wifi_index):
+    def calc_wifi_derivative(self, index, real_wifi, h_wifi_i, real_wifi_indecies):
         
         # pre allocate the derivate vecotr
-        wifi_dervivative = zeros(self.positon_xy.shape[0])
+        wifi_dervivative = np.zeros(2*self.positon_xy.shape[0])
         
         # get the xy postion corrosponding the value we're taking the derivate for
         position_i = self.positon_xy[index,:]
         
         # get the xy postions of the real wifi measurments
-        wifi_move_data = self.positon_xy[real_wifi_index,:]
+        wifi_move_data = self.positon_xy[real_wifi_indecies,:]
         
         # get where the derivates values should go in the derivate vector
         # the vecotr goes [x1, y1, x2, y2,...]
         # this is the x postion, we multiply by two to skip the ys
-        x_incds = 2 * np.nonzero(real_wifi_index)[0]  # I hate numpy somtimes
+        x_incds = 2 * np.nonzero(real_wifi_indecies)[0]  # I hate numpy somtimes
         
         # get index for the i derivative
         x_i_inc = x_incds[index]
         
         # get beta outside the loop
-        beta = self.calc_beta(index, self.positon_xy[real_wifi_index,:])
+        beta = self.calc_beta(index, self.positon_xy[real_wifi_indecies,:])
         
         # loop through all the wifi measumrents values from the access point h_wifi_i is from
         # and get the derivate infromation for that point. Each measurment gives four derivates values to 
         # put in the derivate vecotr: d/dxi, d/dxj, d/dyi, and d/dyj
         # at each iteration of the loop these values add to the final derivate vector
-        for j in range(real_wifi.length):
+        for j in range(real_wifi.size):
             # calculate the sclar portion
             scaler = beta[j] * (real_wifi[j] - h_wifi_i) * (-1/(2*self.tau**2))
             # get the diffrences between the x and y values
@@ -276,10 +278,10 @@ class Slam:
             # get the actual derivate values
             # the two values come from the expoentnts in the equlidean distance squard formula
             # the sign is what is being subtracted from in the diffrence
-            d_dxi = sclar * -2 * x_diff
-            d_dxj = sclar * 2 * x_diff
-            d_dyi = sclar * -2 * y_diff
-            d_dyj = sclar * 2 * y_diff
+            d_dxi = scaler * -2 * x_diff
+            d_dxj = scaler * 2 * x_diff
+            d_dyi = scaler * -2 * y_diff
+            d_dyj = scaler * 2 * y_diff
             
             # now we have to add these derivate values to the proper places in derivate matrix
             x_j_inc = x_incds[j]
@@ -315,15 +317,15 @@ class Slam:
             distance_derv[i::2, meas_num] = np.cos(robot_position[meas_num,1])
             distance_derv[i+1::2, meas_num] = np.sin(robot_position[meas_num,1])
             meas_num += 1
-        print(distance_derv)
+        #print(distance_derv)
         # we're now going to creata the angle derivatives with the same logic
-        angle_derv = np.zeros([self.num_angle * 2, self.num_angle])
+        angle_derv = np.zeros([self.num_gyro * 2, self.num_gyro])
         meas_num = 0
-        for i in range(0,self.num_angle*2, 2):
+        for i in range(0,self.num_gyro*2, 2):
             angle_derv[i::2, meas_num] = -1 * robot_position[meas_num,0] * np.sin(robot_position[meas_num,1])
             angle_derv[i+1::2, meas_num] = robot_position[meas_num,0] * np.cos(robot_position[meas_num,1])
             meas_num += 1
-        print(angle_derv)
+        #print(angle_derv)
             
         # finaly create a zero matrix representing the derivates with respect to the wifi stengths
         wifi_derv = np.zeros([self.num_dist * 2, self.num_wifi_meas])

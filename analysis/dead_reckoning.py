@@ -127,14 +127,21 @@ class deadReckoning:
 class deadReckoningMath:
     """A class for math function related to dead reckonging that we will need in other modules"""
     def rd2xy(self, displacment, angle):
-        """Change dispacment and roation into xy cordinates"""
+        """Change dispacment and roation into xy cordinates
+        
+        Inputs:
+            displcament: distances Nx1
+            angels: nx1
+        Output:
+            X-Y postions, N-1x2"""
         
         assert displacment.size == angle.size
-        xy_cords = np.zeros([displacment.size, 2])
-        for i in range(1, displacment.size):
+        xy_cords = np.zeros([displacment.size - 1, 2])
+        xy_cords[0, 0] = (displacment[0] * np.cos(angle[0]))
+        xy_cords[0, 1] = (displacment[0] * np.sin(angle[0]))
+        for i in range(1, displacment.size - 1):
             xy_cords[i, 0] = xy_cords[i-1, 0] + (displacment[i] * np.cos(angle[i]))
             xy_cords[i, 1] = xy_cords[i-1, 1] + (displacment[i] * np.sin(angle[i]))
-            
         return xy_cords
         
     def plot_trajectory(self, xy_cords):
