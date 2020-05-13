@@ -20,7 +20,7 @@ class Slam:
         
         # variances
          # TODO look up the values I experemntly found for these
-        self.var_dis = 1
+        self.var_dist = 1
         self.var_gyro = 1
         self.var_wifi = 1
         
@@ -75,28 +75,27 @@ class Slam:
             
             # formulat diffrences into a giant vector
             # first we need to put the wifi data into a vector, we flattern and then get rid of the naps
-            diff_wifi_vector = np.diff_wifi.flatten('F')
+            diff_wifi_vector = diff_wifi.flatten('F')
             diff_wifi_vector = diff_wifi_vector[~np.isnan(diff_wifi_vector)]
             # concatinate everything
             diff_vector = np.concatenate((diff_dist, diff_gyro, diff_wifi_vector))
-            
+            print(diff_vector.shape)
             # so the same for the state
-            state_vecotr = np.concatenate((robot_position.flatten('F'), wifi_state))
-            
+            state_vecotr = np.concatenate((robot_position[:-1,:].flatten('F'), wifi_state))
+            print(state_vecotr.shape)
             # solve for correction and adjust the state vector
-            correction = np.linalg.solve(jac, diff_vector)
-            
+            correction = np.linalg.lstsq(jac, diff_vector)
             # check if convergence critera is met
-            if np.mean(correction) < converg_threshold:
+            if np.mean(correction[0]) < converg_threshold:
                 # if on average nothing is changing by more than 0.1 say we're convered
                 # I have no idea if this a good way to check for convergence
                 # at the very least we should probably have a diffrent threshold for each meausrment type
                 convered = True
                 
             # reformulat new state vecotr back into a sane repsentatoin
-            state_vecotr = state_vecotr + correction
-            robot_position[:,0] = state_vecotr[0:self.num_dist]
-            robot_position[:,1] = state_vecotr[self.num_dist:self.num_dist + self.num_angle]
+            state_vecotr = state_vecotr + correction[0]
+            robot_position[:-1,0] = state_vecotr[0:self.num_dist]
+            robot_position[:-1,1] = state_vecotr[self.num_dist:self.num_dist + self.num_gyro]
             wifi_state = state_vecotr[-self.num_wifi_meas:]
             
         return robot_position
@@ -133,9 +132,9 @@ class Slam:
                 
             # put the prediced WiFi data back into a vecor with the NaN
             # if preformace becomes an issue we should do this without the temp variabel.
-            pred_wifi_full_size = pred_wifi_matrix[:wap]
-            pred_wifi_full_size[real_wifi_ind] = pred_wifi
-            pred_wifi_matrix[:wap] = pred_wifi_full_size
+            pred_wifi_full_size = pred_wifi_matrix[:,wap]
+            pred_wifi_full_size[real_wifi_index] = pred_wifi
+            pred_wifi_matrix[:,wap] = pred_wifi_full_size
             
         return pred_wifi_matrix
             
@@ -178,9 +177,9 @@ class Slam:
             N-1 length vector of gyroscope readings
         """
         # pre allocate output
-        gyro = np.zeros(angels.size -1)
+        gyro = np.zeros(angles.size -1)
         for i in range(angles.size-1):
-            gyro[i] = angles(i+1) - angles(i)
+            gyro[i] = angles[i+1] - angles[i]
             
         return gyro
         
@@ -230,8 +229,6 @@ class Slam:
             
             # get the real wifi measurment and the corosponding movment measurments
             real_wifi_indecies = ~np.isnan(self.wifi_measurments[:,wap])
-            print(real_wifi_indecies)
-            print(self.wifi_measurments)
             real_wifi = self.wifi_measurments[real_wifi_indecies,wap]
             real_predict_wifi = h_wifi[real_wifi_indecies,wap]
         
