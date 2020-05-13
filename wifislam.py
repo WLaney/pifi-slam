@@ -6,6 +6,17 @@ import numpy as np
 class Slam:
 
     def __init__(self, movement_data, wifi_data):
+        """Set up class for solving the WIFI slam problem. Call solve_slam to get a result
+        
+        Inputs:
+            movement_data: Nx2 matrix corrosponding to distance and gyro measurments.
+                            N is the number os time steps we have measurments for. Collum 1 is distance,
+                            collum 2 is gyro
+            wifi_data: NxM matric corrosponding to WiFi measurments.
+                      N is the number os time steps we have measurments for.
+                      M is the number of access points we saw in all the data. If we did not get data from
+                      a particular access point at a time step that entry should be NaN
+        """
         
         # input data
         # movment data is a Nx2 matrix where N is the number of time steps
@@ -39,7 +50,16 @@ class Slam:
         self.total_meas = self.num_dist + self.num_gyro + self.num_wifi_meas
         
     def solve_slam(self):
+        """Solve the slam problem. This is the  main class fuction, and the only one that needs called
+        
+        Outputs:
+            robot_position: N+1 by 2 matrix corrosponding to distance and angles, N is the number of measurmenst.
+            This is the slam solution to where the robot is. We don't return anything to do with WiFi because
+            we don't care
+        """
         # inizial the state, we should probably not actual use all zeros for this
+         # we use the number of angles so we can generate gyro predictions correctly
+         # see section VB in the paper
         robot_position = np.zeros([self.num_angle, 2])
         wifi_state = np.zeros(self.num_wifi_meas)
         
@@ -62,6 +82,8 @@ class Slam:
             
             # calculate the diffrence between predicted and real measurments
             diff_wifi = self.wifi_measurments - h_wifi
+            # the state vector distances are longer than the measured distnaces by one
+            # this is because of gyro calcuations
             diff_dist = self.movement_measurments[:,0] - robot_position[:-1,0]
             diff_gyro = self.movement_measurments[:,1] - h_gyro
             
@@ -102,9 +124,16 @@ class Slam:
 
 
     # def_h_wifi
-    # predicts the vector h of all predicted wifi measurements for a single access point
-    # h[i] = a single prediction
     def predict_h_wifi(self):
+        """Predicts the vector h of all predicted wifi measurements for all access points
+        
+        h[i] = a single prediction
+        
+        Outputs:
+            pred_wifi_matrix: a TxW matrix where T is the numbor of measuremnt time stampts and W is the
+            number of WIFI measurments. Any measurment that is NaN in the WiFi measurments will be NaN in
+            the predicted measurments.
+        """
         assert self.positon_xy.shape[0] == self.wifi_measurments.shape[0]
         
         # we should be returning predictions in an identical form as the input
@@ -148,7 +177,7 @@ class Slam:
             wifi_move_data: Nx2 vecor of XY cords corrosponding to WiFi data
     
         Outputs:
-            Collum vecor of weights, the element corrosponding to the input index will be zero"""
+            beta: Collum vecor of weights, the element corrosponding to the input index will be zero"""
         # we need the x and y element of wifi_move_data a lot so just find it once
         xi = wifi_move_data[index,0]
         yi = wifi_move_data[index,1]
@@ -184,7 +213,16 @@ class Slam:
         return gyro
         
     def calc_jacobian(self, h_wifi, robot_position):
-        """Find the jacobian of the state space and measurment predictions"""
+        """Find the jacobian of the state space and measurment predictions
+        
+        Inputs:
+            h_wifi: matrix of predicted WiFi values. Geneared from predict_h_wifi
+            robot_position: Mx2 matrix of the current belived state of robot positions. M is the number of
+            distance/angles
+        
+        Outputs:
+            jac: Jacobian matrix for the state. NxN matirx where N is the number of measurments
+        """
         
         # the jacbobian should be a square matrix and repesent all the state vairables
         # the order of the variables is all the distance measurments, then all the gyro measurments
@@ -243,6 +281,21 @@ class Slam:
         return jac
         
     def calc_wifi_derivative(self, index, real_wifi, h_wifi_i, real_wifi_indecies):
+        """Calculate the derivates of the WiFi function for a spefic predition.
+        
+        These derivates are in the X-Y state space. The results of this function must by multipled by the
+        results of jacobian_xy_dp to get values sutable for the full state space jacobian
+        
+        Inputs:
+            index: Index corrosponding to a wifi meausrment for the access point
+                   This is where the derivate is
+            real_wifi: list of all the real wifi measurments at the access point
+            h_wifi_i: predicted wifi measurment at index
+            real_wifi_indecies: boolean list of where the real wifi measurments are at this access points
+                                We need this to get the robots XY postions at the measurments
+        Returns:
+            Vector of the wifi derivate. This vector is 1xM where M is the number of X and Y postions
+        """
         
         # pre allocate the derivate vecotr
         wifi_dervivative = np.zeros(2*self.positon_xy.shape[0])
@@ -293,6 +346,18 @@ class Slam:
         
             
     def jacobian_xy_dp(self, robot_position):
+        """Get jacobian for going between the XY state space and distance/angle state space
+        
+        This combined with the results of calc_wifi_derivative gives results for the full jacobian
+        
+        Inputs:
+            robot_positoin: current belived robot state in distnace and angles
+        
+        Retruns:
+            jac_xy_dp: jacobian of functions used to go from distance/angle to XY state space
+            The resulting jaconian is MxN where M is the number of X cords the number of Y cords,
+            N is the length of the state space vecotr
+        """
         
         # the resulting jaconian needs to be MxN where M is the number of X cords the number of Y cords
         # N is the length of the state space vecotr
@@ -332,6 +397,6 @@ class Slam:
         # combine everything together into the final jacobian matrix
         self.jac_xy_dp = np.concatenate((distance_derv, angle_derv, wifi_derv), axis=1)
         
-        return self.jac_xy_dp
+        return jac_xy_dp
             
         
