@@ -4,6 +4,7 @@ import time
 import RPi.GPIO as GPIO
 import re
 import csv
+import sys
 
 class Collection:
 
@@ -116,9 +117,10 @@ class Collection:
 
         assert self.mac_list_len == len(self.mac_list)
 
-    def make_csv(self):
+    def make_csv(self, file_path):
         #TODO make the csv filename like the imu csv one (with the date and all)
         line_len = self.mac_list_len + 1
+        file_name = file_path + 'wifi_data.csv'
         with open('wifi_data.csv', 'w') as f:
             writer = csv.writer(f)
             for current_idx, entry in enumerate(self.wifi_data):
@@ -152,7 +154,8 @@ class Collection:
 
 
 if __name__ == "__main__":
+    file_path = str(sys.argv[0])
     a = Collection()
     a.collect()
     a.extract_data()
-    a.make_csv()
+    a.make_csv(file_path)

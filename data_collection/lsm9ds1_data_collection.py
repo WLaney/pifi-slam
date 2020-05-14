@@ -5,7 +5,10 @@ import RPi.GPIO as GPIO
 import board
 import busio
 import adafruit_lsm9ds1
+import sys
  
+directory_path = str(sys.argv[0])
+
 # I2C connection:
 i2c = busio.I2C(board.SCL, board.SDA)
 sensor = adafruit_lsm9ds1.LSM9DS1_I2C(i2c)
@@ -42,9 +45,9 @@ while not collecting:
 data = [0,0,0,0,0,0,0]
 # wait a second to stablalize
 time.sleep(0.5)
+
 # make a file name
-now = time.localtime()
-file_name = str(now.tm_mon) + "-" + str(now.tm_mday) + "-" + str(now.tm_hour) + "-" + str(now.tm_min) + "-" + str(now.tm_sec)+ "-" + "imu-data.csv"
+file_name = directory_path + "imu_data.csv"
 
 print('IMU started.')
 with open(file_name, 'w') as f:
