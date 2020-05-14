@@ -2,7 +2,6 @@
 import subprocess
 import time
 import RPi.GPIO as GPIO
-import json
 import re
 import csv
 
@@ -122,17 +121,16 @@ class Collection:
         line_len = self.mac_list_len + 1
         with open('wifi_data.csv', 'w') as f:
             writer = csv.writer(f)
-            for entry in self.wifi_data:
+            for current_idx, entry in enumerate(self.wifi_data):
                 # Create an empty list of length "len(self.mac_list) + 1".
                 # + 1 because column 0 is the timestamp of the measurement.
                 # The rest of the columns represent signal strengths from a given access point.
                 line = []
                 for i in range(line_len):
+                    # numpy reads this back in from the CSV file through magic
                     line.append(float("NaN"))
-                    #TODO may need to make this numpy nan instead of float nan
 
                 # Add timestamp to the line
-                current_idx = self.wifi_data.index(entry)
                 line[0] = self.timestamps[current_idx]
 
                 addresses   = entry[0]
