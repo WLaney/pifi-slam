@@ -2,7 +2,7 @@
 import analysis.dead_reckoning as dead_reckoning
 import numpy as np
 
-def data_assosation(imu_file, wifi_file):
+def data_association(imu_file, wifi_file):
     """Take IMU and WIFI data files and prepare them for use in WiFi SLAM
     
     Inputs:
