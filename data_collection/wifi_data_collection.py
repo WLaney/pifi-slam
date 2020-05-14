@@ -121,7 +121,7 @@ class Collection:
         #TODO make the csv filename like the imu csv one (with the date and all)
         line_len = self.mac_list_len + 1
         file_name = file_path + 'wifi_data.csv'
-        with open('wifi_data.csv', 'w') as f:
+        with open(file_name, 'w') as f:
             writer = csv.writer(f)
             for current_idx, entry in enumerate(self.wifi_data):
                 # Create an empty list of length "len(self.mac_list) + 1".
@@ -154,7 +154,7 @@ class Collection:
 
 
 if __name__ == "__main__":
-    file_path = str(sys.argv[0])
+    file_path = str(sys.argv[1])
     a = Collection()
     a.collect()
     a.extract_data()

@@ -7,7 +7,7 @@ import busio
 import adafruit_lsm9ds1
 import sys
  
-directory_path = str(sys.argv[0])
+directory_path = str(sys.argv[1])
 
 # I2C connection:
 i2c = busio.I2C(board.SCL, board.SDA)
