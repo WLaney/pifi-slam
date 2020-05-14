@@ -58,7 +58,7 @@ class Collection:
         # Wait for user to push 'start' button
         print("Push button 17 to start and stop data collection, 27 to quit.")
         while not self.collecting:
-            time.sleep(0.1)
+            time.sleep(0.2)
             # Todo: make this a threading.Event()
 
         # User has pushed 'start'
