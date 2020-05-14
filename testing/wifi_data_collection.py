@@ -56,12 +56,12 @@ class Collection:
         count = 0
 
         # Wait for user to push 'start' button
-        print("Push button 17 to start and stop data collection, 27 to quit.")
+        print("Starting WiFi collect (press 17 to start/stop)")
         while not self.collecting:
             time.sleep(0.2)
-            # Todo: make this a threading.Event()
 
         # User has pushed 'start'
+        print('WiFi started.')
 
         while self.collecting:
             try:
