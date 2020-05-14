@@ -41,9 +41,9 @@ def data_association(imu_file, wifi_file):
         # delte the first wifi time stamp
         wifi_times = np.delete(wifi_times, 0)
         # delte the first row of wifi data
-        wifi_data = np.delete(wifi_dat, 0, 0)
+        wifi_data = np.delete(wifi_data, 0, 0)
     
-        if wifi_time.size == 0:
+        if wifi_times.size == 0:
             raise("Can not assoate WiFi times with IMU times")
 
     # create measurment data vector, it needs to be the same size as the wifi times

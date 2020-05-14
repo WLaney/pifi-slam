@@ -24,3 +24,5 @@ print("Data written to " + dir_name)
 
 wifi_data_path = dir_name + "wifi_data.csv"
 imu_data_path = dir_name + "imu_data.csv"
+
+measurment_data, wifi_data = data_association(imu_data_path, wifi_data_path)
