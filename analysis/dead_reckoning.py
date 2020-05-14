@@ -27,10 +27,6 @@ class deadReckoning:
         # ths determines the total size of our new arrays
         self.total_offset = self.win_size + self.start_offset
         
-        # these are the time stamps that the distances and angles are assosated with
-        # need to subtract start offset by one to compenstate for zero indexing
-        self.outtime = self.time[self.start_offset-1: -self.win_size]
-        
     def data_stats(self):
         print("Number of data reads: " + str(self.time.size))
         print("Time accounted for: " + str(self.time[-1] - self.time[1]))
@@ -77,6 +73,11 @@ class deadReckoning:
             angle[i - self.start_offset] = angle[i - self.start_offset - 1] + (self.wz[i] * delta_t)
                 
         return angle
+        
+    def used_data(self, full_data):
+        # these are the time stamps that the distances results are assosated with
+        # need to subtract start offset by one to compenstate for zero indexing
+        return full_data[self.start_offset-1: -self.win_size]
         
     def plot_accleration(self, axis='all'):
         plt.figure() # there is almost deffiently a better way to have multiple plots
@@ -164,4 +165,8 @@ class deadReckoningMath:
             plt.close(fig)
         else:
             plt.show(block=False)
+            
+    def show_plots(self):
+        # this feels stupid but I don't know a better way to get the behavior I want
+        plt.show()
     

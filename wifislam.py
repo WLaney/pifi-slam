@@ -30,10 +30,11 @@ class Slam:
         self.drm = dead_reckoning.deadReckoningMath()
         
         # variances
-         # TODO look up the values I experemntly found for these
-        self.var_dist = 1
-        self.var_gyro = 1
-        self.var_wifi = 1
+         # very rough axpromemations from experements
+         # error progegation is hard and confusing
+        self.var_dist = 0.003
+        self.var_gyro = 0.2
+        self.var_wifi = 3
         
         # other variables
         self.tau = 2 # scale parameter repesting the distance between walls
@@ -117,7 +118,8 @@ class Slam:
             robot_position[:,0] = state_vecotr[0:self.num_angle]
             robot_position[:,1] = state_vecotr[self.num_angle:self.num_angle + self.num_angle]
             wifi_state = state_vecotr[-self.num_wifi_meas:]
-            
+         
+        print("slam")   
         return robot_position
 
 
