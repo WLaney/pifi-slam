@@ -118,8 +118,14 @@ class Slam:
             robot_position[:,0] = state_vecotr[0:self.num_angle]
             robot_position[:,1] = state_vecotr[self.num_angle:self.num_angle + self.num_angle]
             wifi_state = state_vecotr[-self.num_wifi_meas:]
+            # incremtn try counter
+            trys += 1
          
-        print("slam")   
+        if convered is False:
+            print("Slam Failed to converge. Returning latest position state vector")
+        else:
+            print("Slam convereged succesfuly!")
+            
         return robot_position
 
 
