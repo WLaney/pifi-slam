@@ -5,6 +5,8 @@ import time
 from multiprocessing import Pool
 
 from analysis.data_association import data_association
+import analysis.wifislam as wifislam
+import analysis.dead_reckoning as dr
 
 now = time.localtime()
 now_string = str(now.tm_mon) + "-" + str(now.tm_mday) + "-" + str(now.tm_hour) + "-" + str(now.tm_min) + "-" + str(now.tm_sec)
@@ -26,3 +28,13 @@ wifi_data_path = dir_name + "wifi_data.csv"
 imu_data_path = dir_name + "imu_data.csv"
 
 measurment_data, wifi_data = data_association(imu_data_path, wifi_data_path)
+
+print("Solving Slam...")
+slam = wifislam.Slam(measurment_data, wifi_data)
+slam_positions = slam.solve_slam()
+
+drmath = dr.deadReckoningMath()
+slamXY = drmath.rd2xy(slam_positions[:,0], slam_positions[:,1])
+slam_plot_path = dir_name + "wifi_slam_traj.png"
+drmath.plot_trajectory(slamXY, save=slam_plot_path)
+

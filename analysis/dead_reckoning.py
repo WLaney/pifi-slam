@@ -161,7 +161,8 @@ class deadReckoningMath:
         plt.xlabel("X (m)")
         plt.ylabel("Y (m)")
         if save:
-            plt.savefig('test.png', bbox_inches='tight')
+            file_path = save + 'wifi_slam_traj.png'
+            plt.savefig(save, bbox_inches='tight')
             plt.close(fig)
         else:
             plt.show(block=False)
