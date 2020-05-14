@@ -8,39 +8,46 @@ import os
 
 # GPIO set up
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # call back for exit pin
 def leave(pin):
+    GPIO.cleanup()
     quit()
 # set up exit interup
-GPIO.add_event_detect(17, GPIO.FALLING, callback=leave)
+GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
 
 # set up piTFT stuff
-os.putenv('SDL_VIDEODRIVER', 'fbcon')
-os.putenv('SDL_FBDEV', '/dev/fb1')
-os.putenv('SDL_MOUSEDRV', 'TSLIB')
-os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
+#os.putenv('SDL_VIDEODRIVER', 'fbcon')
+#os.putenv('SDL_FBDEV', '/dev/fb1')
+#os.putenv('SDL_MOUSEDRV', 'TSLIB')
+#os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
 
-# set up pygames, must set up TFT first
-pygame.init()
+class TFTplotting:
+    def __init__(self, file_path):
+        # set up pygames, must set up TFT first
+        pygame.init()
 
-# hide the mouse
-pygame.mouse.set_visible(False)
+        # hide the mouse
+        pygame.mouse.set_visible(False)
 
-size = width, height = 320, 240
-black = 0, 0, 0
+        self.size = width, height = 320, 240
+        self.black = 0, 0, 0
 
-screen = pygame.display.set_mode(size)
+        self.screen = pygame.display.set_mode(self.size)
 
-plot = pygame.image.load("testing/test.png")
-plotrec = plot.get_rect()
-start = time.time()
-run_time = 0
-while run_time < 60:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
+        self.plot = pygame.image.load(file_path)
+        self.plotrec = self.plot.get_rect()
 
-    screen.fill(black)
-    screen.blit(plot, plotrec)
-    pygame.display.flip()
-    run_time = time.time() - start
+    def show_plots(self):
+        start = time.time()
+        run_time = 0
+        self.screen.blit(self.plot, self.plotrec)
+        pygame.display.flip()
+        while run_time < 60:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: sys.exit()
+
+            #self.screen.fill(self.black)
+            #screen.blit(self.plot, self.plotrec)
+            #pygame.display.flip()
+            run_time = time.time() - start
