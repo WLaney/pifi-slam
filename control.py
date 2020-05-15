@@ -47,5 +47,5 @@ drXY = drmath.rd2xy(dr_displacment, dr_angle)
 dr_plot_path = dir_name + "dr_traj.png"
 drmath.plot_trajectory(drXY, save=dr_plot_path, title="Dead Reckoning Trajectory")
 
-tft_plotter = TFTplotting(slam_plot_path)
+tft_plotter = TFTplotting([slam_plot_path, dr_plot_path])
 tft_plotter.show_plots()

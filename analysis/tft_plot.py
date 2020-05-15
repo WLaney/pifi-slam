@@ -9,6 +9,8 @@ import os
 # GPIO set up
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # call back for exit pin
 def leave(pin):
     GPIO.cleanup()
@@ -23,10 +25,17 @@ GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
 #os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
 
 class TFTplotting:
-    def __init__(self, file_path):
+    def __init__(self, file_paths):
         # set up pygames, must set up TFT first
         pygame.init()
 
+        # set up interupts for buttons that change displaued plot
+        # move 1 plot foward
+        GPIO.add_event_detect(23, GPIO.FALLING,
+                callback=lambda pin: self.change_plot(1), bouncetime=200)
+        # move 1 plot backwards
+        GPIO.add_event_detect(22, GPIO.FALLING,
+                callback=lambda pin: self.change_plot(-1), bouncetime=200)
         # hide the mouse
         pygame.mouse.set_visible(False)
 
@@ -35,7 +44,15 @@ class TFTplotting:
 
         self.screen = pygame.display.set_mode(self.size)
 
-        self.plot = pygame.image.load(file_path)
+        # load in the plots, hopefully we dont have enough to fill our memory
+        self.loaded_plots = [0] * len(file_paths)
+        for i, plot_path in enumerate(file_paths):
+            self.loaded_plots[i] = pygame.image.load(plot_path)
+
+        self.max_plot_ind = len(file_paths) - 1
+        self.current_plot_ind = 0
+
+        self.plot = self.loaded_plots[self.current_plot_ind]
         self.plotrec = self.plot.get_rect()
 
     def show_plots(self):
@@ -47,7 +64,22 @@ class TFTplotting:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
-            #self.screen.fill(self.black)
-            #screen.blit(self.plot, self.plotrec)
-            #pygame.display.flip()
+            self.plot = self.loaded_plots[self.current_plot_ind]
+            self.screen.fill(self.black)            
+            self.screen.blit(self.plot, self.plotrec)
+            pygame.display.flip()
             run_time = time.time() - start
+
+    def change_plot(self, amount):
+        new_plot_ind = self.current_plot_ind + amount
+        # loop if we're out of bounds
+        if new_plot_ind < 0:
+            self.current_plot_ind = self.max_plot_ind
+        elif new_plot_ind > self.max_plot_ind:
+            self.current_plot_ind = 0
+        else:
+            self.current_plot_ind = new_plot_ind
+
+
+
+
