@@ -37,7 +37,15 @@ slam_positions = slam.solve_slam()
 drmath = dr.deadReckoningMath()
 slamXY = drmath.rd2xy(slam_positions[:,0], slam_positions[:,1])
 slam_plot_path = dir_name + "wifi_slam_traj.png"
-drmath.plot_trajectory(slamXY, save=slam_plot_path)
+drmath.plot_trajectory(slamXY, save=slam_plot_path, title="SLAM Trajectory")
+
+print("Preforming Dead Reckoning")
+dr_solver = dr.deadReckoning(imu_data_path)
+dr_displacment = dr_solver.displacment_from_axis(dr_solver.ax)
+dr_angle = dr_solver.rotation_from_wz()
+drXY = drmath.rd2xy(dr_displacment, dr_angle)
+dr_plot_path = dir_name + "dr_traj.png"
+drmath.plot_trajectory(slamXY, save=dr_plot_path, title="Dead Reckoning Trajectory")
 
 tft_plotter = TFTplotting(slam_plot_path)
 tft_plotter.show_plots()

@@ -149,7 +149,7 @@ class deadReckoningMath:
             xy_cords[i, 1] = xy_cords[i-1, 1] + (displacment[i] * np.sin(angle[i]))
         return xy_cords
         
-    def plot_trajectory(self, xy_cords, save=False):
+    def plot_trajectory(self, xy_cords, save=False, title="Trajectory"):
         if save:
             # set the figure size in inches, this is the size needed to fill the whole TFT screen
             # these dimensions do not match what I measure with a ruller
@@ -157,7 +157,7 @@ class deadReckoningMath:
         else:
             plt.figure()
         plt.plot(xy_cords[:,0], xy_cords[:,1], '-.')
-        plt.title("Trajectory")
+        plt.title(title)
         plt.xlabel("X (m)")
         plt.ylabel("Y (m)")
         if save:
