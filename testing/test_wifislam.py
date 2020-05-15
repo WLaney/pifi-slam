@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import wifislam
+from analysis import wifislam
 import numpy as np
 import unittest
 
