@@ -200,7 +200,12 @@ class Slam:
             
         # zero out the term corrosonding to the measurment we're looking for
         beta[index] = 0
-        
+
+        # Normalization step:
+        #beta_sum = np.sum(beta)
+        #beta_norm = np.divide(beta, beta_sum)
+        #beta_norm_sum = np.sum(beta_norm)
+
         return beta
         
     def predict_h_gyro(self, angles):
