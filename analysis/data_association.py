@@ -46,6 +46,10 @@ def data_association(imu_file, wifi_file):
         if wifi_times.size == 0:
             raise("Can not assoate WiFi times with IMU times")
 
+    # convert dBm to mW
+    wifi_data_dbm   = wifi_data[:,1:]
+    wifi_data_mw    = np.power(10, wifi_data_dbm/10.0)
+
     # create measurment data vector, it needs to be the same size as the wifi times
     measurment_data = np.empty([wifi_times.size, 2])
 
@@ -58,8 +62,8 @@ def data_association(imu_file, wifi_file):
         time_slices = (imu_times > wifi_times[i-1]) & (imu_times <= wifi_times[i])
         measurment_data[i,0] = np.sum(distance[time_slices])
         measurment_data[i,1] = np.mean(gyro[time_slices])
-    
-    return measurment_data, wifi_data[:,1:]
+
+    return measurment_data, wifi_data_mw
     
 if __name__ == "__main__":
     # this is for testing, the funtion is this file should be called by the controling script

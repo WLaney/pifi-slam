@@ -31,13 +31,12 @@ def start(pin):
         collecting = True
     
 GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
-GPIO.add_event_detect(17, GPIO.FALLING, callback=start)
+GPIO.add_event_detect(17, GPIO.FALLING, callback=start, bouncetime=200)
 
 # set accerometer range, it should default to 2G
 sensor.accel_range = adafruit_lsm9ds1.ACCELRANGE_2G
 
 print("Starting IMU collect (press 17 to start/stop)")
-# a bad way to do this
 while not collecting:
     time.sleep(0.2)
 

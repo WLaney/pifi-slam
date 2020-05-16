@@ -33,7 +33,7 @@ class Collection:
         GPIO.setmode(GPIO.BCM)  # Set for broadcom numbering, not board numbers
         GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(17, GPIO.FALLING, callback=self.button_press)
+        GPIO.add_event_detect(17, GPIO.FALLING, callback=self.button_press, bouncetime=200)
         GPIO.add_event_detect(27, GPIO.FALLING, callback=self.leave)
         
         # WiFi data collection commands
@@ -159,3 +159,4 @@ if __name__ == "__main__":
     a.collect()
     a.extract_data()
     a.make_csv(file_path)
+    GPIO.cleanup()

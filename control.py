@@ -49,3 +49,4 @@ drmath.plot_trajectory(drXY, save=dr_plot_path, title="Dead Reckoning Trajectory
 
 tft_plotter = TFTplotting([slam_plot_path, dr_plot_path])
 tft_plotter.show_plots()
+print("DONE!!")

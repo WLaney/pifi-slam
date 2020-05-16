@@ -6,28 +6,26 @@ import RPi.GPIO as GPIO
 import time
 import os
 
-# GPIO set up
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-# call back for exit pin
-def leave(pin):
-    print("Leaving")
-    GPIO.cleanup()
-    quit()
-# set up exit interup
-
-# set up piTFT stuff
-#os.putenv('SDL_VIDEODRIVER', 'fbcon')
-#os.putenv('SDL_FBDEV', '/dev/fb1')
-#os.putenv('SDL_MOUSEDRV', 'TSLIB')
-#os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
-
 class TFTplotting:
     def __init__(self, file_paths):
         # set up pygames, must set up TFT first
         pygame.init()
+
+        # GPIO set up
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
+        # set up exit interup
+
+        # set up piTFT stuff
+        #os.putenv('SDL_VIDEODRIVER', 'fbcon')
+        #os.putenv('SDL_FBDEV', '/dev/fb1')
+        #os.putenv('SDL_MOUSEDRV', 'TSLIB')
+        #os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
+
 
         # set up interupts for buttons that change displaued plot
         # move 1 plot foward
@@ -36,7 +34,7 @@ class TFTplotting:
         # move 1 plot backwards
         GPIO.add_event_detect(22, GPIO.FALLING,
                 callback=lambda pin: self.change_plot(-1), bouncetime=200)
-        GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
+        GPIO.add_event_detect(27, GPIO.FALLING, callback=self.leave)
         # hide the mouse
         pygame.mouse.set_visible(False)
 
@@ -57,6 +55,13 @@ class TFTplotting:
 
         self.plot = self.loaded_plots[self.current_plot_ind]
         self.plotrec = self.loaded_plots_rects[self.current_plot_ind]
+
+    # call back for exit pin
+    def leave(self, pin):
+        print("Leaving")
+        pygame.quit()
+        GPIO.cleanup()
+        quit()
 
     def show_plots(self):
         start = time.time()
