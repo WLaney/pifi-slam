@@ -13,10 +13,10 @@ GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # call back for exit pin
 def leave(pin):
+    print("Leaving")
     GPIO.cleanup()
     quit()
 # set up exit interup
-GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
 
 # set up piTFT stuff
 #os.putenv('SDL_VIDEODRIVER', 'fbcon')
@@ -36,6 +36,7 @@ class TFTplotting:
         # move 1 plot backwards
         GPIO.add_event_detect(22, GPIO.FALLING,
                 callback=lambda pin: self.change_plot(-1), bouncetime=200)
+        GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
         # hide the mouse
         pygame.mouse.set_visible(False)
 
@@ -46,14 +47,16 @@ class TFTplotting:
 
         # load in the plots, hopefully we dont have enough to fill our memory
         self.loaded_plots = [0] * len(file_paths)
+        self.loaded_plots_rects = [0] * len(file_paths)
         for i, plot_path in enumerate(file_paths):
             self.loaded_plots[i] = pygame.image.load(plot_path)
+            self.loaded_plots_rects[i] = self.loaded_plots[i].get_rect()
 
         self.max_plot_ind = len(file_paths) - 1
         self.current_plot_ind = 0
 
         self.plot = self.loaded_plots[self.current_plot_ind]
-        self.plotrec = self.plot.get_rect()
+        self.plotrec = self.loaded_plots_rects[self.current_plot_ind]
 
     def show_plots(self):
         start = time.time()
@@ -64,7 +67,10 @@ class TFTplotting:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
+            # get the current plot and rec
             self.plot = self.loaded_plots[self.current_plot_ind]
+            self.plotrec = self.loaded_plots_rects[self.current_plot_ind]
+            # update the screen
             self.screen.fill(self.black)            
             self.screen.blit(self.plot, self.plotrec)
             pygame.display.flip()

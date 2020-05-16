@@ -153,7 +153,7 @@ class deadReckoningMath:
         if save:
             # set the figure size in inches, this is the size needed to fill the whole TFT screen
             # these dimensions do not match what I measure with a ruller
-            fig = plt.figure(figsize=(3.2,2))
+            fig = plt.figure(figsize=(3.2,2), tight_layout=True)
         else:
             plt.figure()
         plt.plot(xy_cords[:,0], xy_cords[:,1], '-.')
