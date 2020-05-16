@@ -202,11 +202,13 @@ class Slam:
         beta[index] = 0
 
         # Normalization step:
-        #beta_sum = np.sum(beta)
-        #beta_norm = np.divide(beta, beta_sum)
-        #beta_norm_sum = np.sum(beta_norm)
+        beta_sum = np.sum(beta)
+        if beta_sum == 0:
+            beta_norm = np.zeros(beta.shape)
+        else:
+            beta_norm = np.divide(beta, beta_sum)
 
-        return beta
+        return beta_norm
         
     def predict_h_gyro(self, angles):
         """"Use angels to predit gyroscope measurments
