@@ -34,7 +34,7 @@ class Slam:
          # error progegation is hard and confusing
         self.var_dist = 0.003
         self.var_gyro = 0.2
-        self.var_wifi = 3
+        self.var_wifi = 2e-14 
         
         # other variables
         self.tau = 2 # scale parameter repesting the distance between walls
@@ -89,10 +89,13 @@ class Slam:
             diff_gyro = self.movement_measurments[:,1] - h_gyro
             
             # multipy in the inverse variance of the sensors into the diffrences
-            diff_wifi *= (1/self.var_wifi)
-            diff_dist *= (1/self.var_dist)
-            diff_gyro *= (1/self.var_gyro)
+            #diff_wifi *= (1/self.var_wifi)
+            #diff_dist *= (1/self.var_dist)
+            #diff_gyro *= (1/self.var_gyro)
             
+            diff_wifi *= (self.var_wifi)
+            diff_dist *= (self.var_dist)
+            diff_gyro *= (self.var_gyro)
             # calcuate the jacobian
             jac = self.calc_jacobian(h_wifi, robot_position)
             
