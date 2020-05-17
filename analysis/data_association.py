@@ -56,6 +56,7 @@ def data_association(imu_file, wifi_file):
     # fill the first entries of measurment data with values from before the first wifi scan
     measurment_data[0,0] = np.sum(distance[imu_times <= wifi_times[0]])
     measurment_data[0,1] = np.mean(gyro[imu_times <= wifi_times[0]])
+    measurment_data[0,1] = np.deg2rad(measurment_data[0,1])
 
     # now fill in the rest of the matrix
     for i in range(1, wifi_times.size):
