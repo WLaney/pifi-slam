@@ -16,6 +16,11 @@ class TestWIFIslamZeros(unittest.TestCase):
         self.robot_position = np.zeros([self.slam.num_angle, 2])
         self.slam.positon_xy = self.slam.drm.rd2xy(self.robot_position[:,0], self.robot_position[:,1])
         
+        # set the variane to 1 for easer math
+        self.slam.var_dist = 1
+        self.slam.var_gyro = 1
+        self.slam.var_wifi = 1
+        
     def test_beta(self):
         beta = self.slam.calc_beta(0, self.movement_data)
         # im not really sure you're suppose to start usin np testing in unittest like this, but
@@ -71,6 +76,11 @@ class TestWIFIslamNaNs(unittest.TestCase):
         # solve slam
         self.robot_position = np.zeros([self.slam.num_angle, 2])
         self.slam.positon_xy = self.slam.drm.rd2xy(self.robot_position[:,0], self.robot_position[:,1])
+        
+        # set the variane to 1 for easer math
+        self.slam.var_dist = 1
+        self.slam.var_gyro = 1
+        self.slam.var_wifi = 1
 
     def test_predict_h_wifi(self):
         h_wifi = self.slam.predict_h_wifi()
@@ -104,6 +114,74 @@ class TestWIFIslamNaNs(unittest.TestCase):
 
     def test_solve_slam(self):
         slam_positions = self.slam.solve_slam()
+        np.testing.assert_array_equal(slam_positions, self.robot_position)
+        
+class TestWIFIslamNumbers(unittest.TestCase):
+    # test functions that deal with WiFi data handle NaNs correctly
+    def setUp(self):
+        # the robot sits in place for two time stamps and get's zero readings from one access point
+        self.movement_data = np.array([[1, 0], [1.4142, 0.7853]])
+        self.wifi_data = np.array([[0.001], [0.000779]])
+        self.slam = wifislam.Slam(self.movement_data, self.wifi_data)
+        
+        # set up some class vairables that are needed. These are normally created and maintained in
+        # solve slam
+        self.robot_position = np.zeros([self.slam.num_angle, 2])
+        self.slam.positon_xy = self.slam.drm.rd2xy(np.zeros([3,1]), np.zeros([3,1]))
+        
+        # set the variane to 1 for easer math
+        self.slam.var_dist = 1
+        self.slam.var_gyro = 1
+        self.slam.var_wifi = 1
+        
+        # set max iterations to 1
+        self.slam.max_trys = 1
+        
+    def test_beta(self):
+        beta = self.slam.calc_beta(0, self.movement_data)
+        # im not really sure you're suppose to start usin np testing in unittest like this, but
+        # it basicaly works so I'm not going to think to hard about this
+        np.testing.assert_array_equal(beta, np.array([0,1]))
+            
+    def test_predict_h_wifi(self):
+        h_wifi = self.slam.predict_h_wifi()
+        # since there are only two measurments each prediction is just the other measure
+        correct_h_predict = np.array([[0.000779],[0.001]])
+        np.testing.assert_array_equal(correct_h_predict, h_wifi)
+        
+    def test_precit_h_gyro(self):
+        h_gyro = self.slam.predict_h_gyro(self.robot_position[:,0])
+        # the intial state vecotr is zeros so one gyro prediction will just be zero
+        np.testing.assert_array_equal(np.zeros(2), h_gyro)
+        
+    def test_jacobian_xy_dp(self):
+        jac_xy = np.zeros([4,8])
+        jac_xy[0,0] = 1
+        jac_xy[2,0] = 1
+        jac_xy[2,1] = 1
+        calc_jac_xy = self.slam.jacobian_xy_dp(self.robot_position)
+        np.testing.assert_array_equal(calc_jac_xy, jac_xy)
+        
+    def test_calc_wifi_derivative(self):
+        real_wifi_indecies = np.array([True, True])
+        derivative = self.slam.calc_wifi_derivative(0, self.wifi_data, 0.000779, real_wifi_indecies)
+        # since the state vector is zero all these derivates go to zero at fist
+        np.testing.assert_array_equal(derivative, np.zeros(4))
+        
+    def test_calc_jacobian(self):
+        # calculated by hand
+        jac = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 1, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, -1, 1, 0, 0, 0],
+                        [0, 0, 0, 0, -1, 1, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0]])
+        calc_jac = self.slam.calc_jacobian(self.wifi_data, self.robot_position)
+        np.testing.assert_array_equal(jac, calc_jac)
+        
+    def test_solve_slam(self):
+        slam_positions = self.slam.solve_slam()
+        matlab_sol = np.array([[1, -0.7853], [1.4141,-0.7853], [0, 0]])
         np.testing.assert_array_equal(slam_positions, self.robot_position)
         
 if __name__ == '__main__':
