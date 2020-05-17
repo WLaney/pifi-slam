@@ -3,6 +3,7 @@
 import os
 import time
 from multiprocessing import Pool
+import pygame # need this for error handeling
 
 from analysis.data_association import data_association
 import analysis.wifislam as wifislam
@@ -49,5 +50,8 @@ dr_plot_path = dir_name + "dr_traj.png"
 drmath.plot_trajectory(drXY, save=dr_plot_path, title="Dead Reckoning Trajectory")
 
 tft_plotter = TFTplotting([slam_plot_path, dr_plot_path])
-tft_plotter.show_plots()
+try:
+    tft_plotter.show_plots()
+except pygame.error:
+    pass
 print("Done.")

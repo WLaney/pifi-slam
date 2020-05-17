@@ -5,6 +5,7 @@ import RPi.GPIO as GPIO
 import re
 import csv
 import sys
+import warnings
 
 class Collection:
 
@@ -49,7 +50,12 @@ class Collection:
             self.collecting = True
 
     def leave(self, num):
-        GPIO.cleanup()
+        # sometimes when multithreading the imu cleans up first and this throws
+        # a warning. We don't really care about cleaning up twice because
+        # the second time does not do anything so we suppress the warning
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            GPIO.cleanup()
         quit()
 
     def collect(self):
@@ -159,4 +165,6 @@ if __name__ == "__main__":
     a.collect()
     a.extract_data()
     a.make_csv(file_path)
-    GPIO.cleanup()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        GPIO.cleanup()

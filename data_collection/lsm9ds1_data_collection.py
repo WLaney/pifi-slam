@@ -6,6 +6,7 @@ import board
 import busio
 import adafruit_lsm9ds1
 import sys
+import warnings
  
 directory_path = str(sys.argv[1])
 
@@ -21,7 +22,12 @@ GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # call back for exit
 def leave(pin):
-    GPIO.cleanup()
+    # we clean up gpio twice, one from each thread. The secont one to run
+    # throughs a warning, since it's not a big deal we suppress the warning
+    # instead of fixing the threading problem
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        GPIO.cleanup()
     quit()
 def start(pin):
     global collecting

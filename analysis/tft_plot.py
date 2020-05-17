@@ -59,7 +59,6 @@ class TFTplotting:
 
     # call back for exit pin
     def leave(self, pin):
-        print("\tLeaving")
         pygame.quit()
         GPIO.cleanup()
         quit()
