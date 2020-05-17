@@ -36,6 +36,10 @@ class Slam:
         self.var_gyro = 0.2
         self.var_wifi = 2e-14 
         
+        self.std_dist = np.sqrt(self.var_dist)
+        self.std_gyro = np.sqrt(self.var_gyro)
+        self.std_wifi = np.sqrt(self.var_wifi)
+
         # other variables
         self.tau = 2 # scale parameter repesting the distance between walls
         
@@ -91,13 +95,13 @@ class Slam:
             diff_gyro = self.movement_measurments[:,1] - h_gyro
             
             # multipy in the inverse variance of the sensors into the diffrences
-            #diff_wifi *= (1/self.var_wifi)
-            #diff_dist *= (1/self.var_dist)
-            #diff_gyro *= (1/self.var_gyro)
+            diff_wifi *= (1/self.std_wifi)
+            diff_dist *= (1/self.std_dist)
+            diff_gyro *= (1/self.std_gyro)
             
-            diff_wifi *= (self.var_wifi)
-            diff_dist *= (self.var_dist)
-            diff_gyro *= (self.var_gyro)
+            #diff_wifi *= (self.var_wifi)
+            #diff_dist *= (self.var_dist)
+            #diff_gyro *= (self.var_gyro)
             # calcuate the jacobian
             jac = self.calc_jacobian(h_wifi, robot_position)
             
@@ -262,14 +266,14 @@ class Slam:
         # for the measurment in questoin and zero everywhere else
         # ie hd_1/dd1 = 1 and hd_1/dd2 = 0 hd_1/ddthetaN = 0, hd_1/ddwifiN = 0
         # this means the secion of the jacobian concerned with the derivates of h_distance is a idently matrix
-        jac[:self.num_dist,:self.num_dist] = np.eye(self.num_dist) * (1/self.var_dist)
+        jac[:self.num_dist,:self.num_dist] = np.eye(self.num_dist) * (1/self.std_dist)
         
         # the gyro measurments are based on angle theta_i and theta_i+1
         # this means for each gyro measurment prediction there are non zero derivates for theta_i and theta_i+1
         # these derivates will be -1 and 1 repspectfuly
         for i in range(self.num_dist+1, self.num_dist+1+self.num_angle-1):
-            jac[i-1,i] = -1 * (1/self.var_gyro)
-            jac[i-1, i+1] = 1 * (1/self.var_gyro)
+            jac[i-1,i] = -1 * (1/self.std_gyro)
+            jac[i-1, i+1] = 1 * (1/self.std_gyro)
             
         # now we need to fill in the h_wifi derivates, this is more complicated so the actual math is done
         # in helper functions
@@ -294,7 +298,7 @@ class Slam:
                 h_wifi_i = real_predict_wifi[i]
                 wifi_dervivative = self.calc_wifi_derivative(i, real_wifi, h_wifi_i, real_wifi_indecies)
                 wifi_derivate_dphi_state = np.matmul(wifi_dervivative, jac_xy_dp)
-                jac[jac_wifi_row,:] = wifi_derivate_dphi_state * (1/self.var_wifi)
+                jac[jac_wifi_row,:] = wifi_derivate_dphi_state * (1/self.std_wifi)
                 jac_wifi_row += 1
                 
         return jac
