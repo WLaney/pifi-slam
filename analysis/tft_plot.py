@@ -40,6 +40,7 @@ class TFTplotting:
 
         self.size = width, height = 320, 240
         self.black = 0, 0, 0
+        self.white = 255, 255, 255
 
         self.screen = pygame.display.set_mode(self.size)
 
@@ -48,7 +49,7 @@ class TFTplotting:
         self.loaded_plots_rects = [0] * len(file_paths)
         for i, plot_path in enumerate(file_paths):
             self.loaded_plots[i] = pygame.image.load(plot_path)
-            self.loaded_plots_rects[i] = self.loaded_plots[i].get_rect()
+            self.loaded_plots_rects[i] = self.loaded_plots[i].get_rect(center = (160, 120))
 
         self.max_plot_ind = len(file_paths) - 1
         self.current_plot_ind = 0
@@ -58,7 +59,7 @@ class TFTplotting:
 
     # call back for exit pin
     def leave(self, pin):
-        print("Leaving")
+        print("\tLeaving")
         pygame.quit()
         GPIO.cleanup()
         quit()
@@ -76,7 +77,7 @@ class TFTplotting:
             self.plot = self.loaded_plots[self.current_plot_ind]
             self.plotrec = self.loaded_plots_rects[self.current_plot_ind]
             # update the screen
-            self.screen.fill(self.black)            
+            self.screen.fill(self.white)            
             self.screen.blit(self.plot, self.plotrec)
             pygame.display.flip()
             run_time = time.time() - start

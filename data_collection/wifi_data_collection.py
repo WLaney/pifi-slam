@@ -56,7 +56,7 @@ class Collection:
         count = 0
 
         # Wait for user to push 'start' button
-        print("Starting WiFi collect (press 17 to start/stop)")
+        print("\tWiFi ready to collect.")
         while not self.collecting:
             time.sleep(0.2)
 
@@ -71,10 +71,10 @@ class Collection:
                 self.wifi_raw.append(p.decode())
                 #print(p.decode())
             except subprocess.CalledProcessError:
-                print("wlan0 was busy")
+                print("\twlan0 was busy")
                 time.sleep(0.1)
             finally:
-                print("count = " + str(count))
+                print("\tcount = " + str(count))
                 count += 1
         
         # User has pushed button 17 again (stop).

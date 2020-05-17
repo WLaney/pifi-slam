@@ -36,7 +36,7 @@ GPIO.add_event_detect(17, GPIO.FALLING, callback=start, bouncetime=200)
 # set accerometer range, it should default to 2G
 sensor.accel_range = adafruit_lsm9ds1.ACCELRANGE_2G
 
-print("Starting IMU collect (press 17 to start/stop)")
+print("\tIMU ready to collect.")
 while not collecting:
     time.sleep(0.2)
 
@@ -68,4 +68,4 @@ with open(file_name, 'w') as f:
             break
         time.sleep(0.05)
 GPIO.cleanup()
-print('IMU done.')
+print('IMU data collection complete.')
