@@ -50,6 +50,9 @@ class Slam:
         # get the total number of measurments, this is the size of the state vecotr
         self.total_meas = self.num_dist + self.num_gyro + self.num_wifi_meas
         
+        # set slamm iteration trys
+        self.max_trys = 5
+        
     def solve_slam(self):
         """Solve the slam problem. This is the  main class fuction, and the only one that needs called
         
@@ -67,8 +70,7 @@ class Slam:
         convered = False
         converg_threshold = 0.1 # I made this up
         trys = 0
-        max_trys = 5
-        while convered is False and trys < max_trys:
+        while convered is False and trys < self.max_trys:
             # get the XY repsentation of the robot pose
             self.positon_xy = self.drm.rd2xy(robot_position[:,0], robot_position[:,1])
             
@@ -260,14 +262,14 @@ class Slam:
         # for the measurment in questoin and zero everywhere else
         # ie hd_1/dd1 = 1 and hd_1/dd2 = 0 hd_1/ddthetaN = 0, hd_1/ddwifiN = 0
         # this means the secion of the jacobian concerned with the derivates of h_distance is a idently matrix
-        jac[:self.num_dist,:self.num_dist] = np.eye(self.num_dist)
+        jac[:self.num_dist,:self.num_dist] = np.eye(self.num_dist) * (1/self.var_dist)
         
         # the gyro measurments are based on angle theta_i and theta_i+1
         # this means for each gyro measurment prediction there are non zero derivates for theta_i and theta_i+1
         # these derivates will be -1 and 1 repspectfuly
         for i in range(self.num_dist+1, self.num_dist+1+self.num_angle-1):
-            jac[i-1,i] = -1
-            jac[i-1, i+1] = 1
+            jac[i-1,i] = -1 * (1/self.var_gyro)
+            jac[i-1, i+1] = 1 * (1/self.var_gyro)
             
         # now we need to fill in the h_wifi derivates, this is more complicated so the actual math is done
         # in helper functions
@@ -292,7 +294,7 @@ class Slam:
                 h_wifi_i = real_predict_wifi[i]
                 wifi_dervivative = self.calc_wifi_derivative(i, real_wifi, h_wifi_i, real_wifi_indecies)
                 wifi_derivate_dphi_state = np.matmul(wifi_dervivative, jac_xy_dp)
-                jac[jac_wifi_row,:] = wifi_derivate_dphi_state
+                jac[jac_wifi_row,:] = wifi_derivate_dphi_state * (1/self.var_wifi)
                 jac_wifi_row += 1
                 
         return jac
