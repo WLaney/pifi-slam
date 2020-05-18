@@ -37,7 +37,7 @@ def start(pin):
         collecting = True
     
 GPIO.add_event_detect(27, GPIO.FALLING, callback=leave)
-GPIO.add_event_detect(17, GPIO.FALLING, callback=start, bouncetime=200)
+GPIO.add_event_detect(17, GPIO.FALLING, callback=start, bouncetime=400)
 
 # set accerometer range, it should default to 2G
 sensor.accel_range = adafruit_lsm9ds1.ACCELRANGE_2G

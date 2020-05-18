@@ -68,7 +68,7 @@ class TFTplotting:
         run_time = 0
         self.screen.blit(self.plot, self.plotrec)
         pygame.display.flip()
-        while run_time < 60:
+        while run_time < 90:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
