@@ -1,4 +1,4 @@
-# ece5725project
+# Pi-Fi Slam
 William and Luke's repo, containing code for their final project.
 
 ## Requirments
