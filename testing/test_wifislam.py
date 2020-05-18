@@ -179,10 +179,10 @@ class TestWIFIslamNumbers(unittest.TestCase):
         calc_jac = self.slam.calc_jacobian(self.wifi_data, self.robot_position)
         np.testing.assert_array_equal(jac, calc_jac)
         
-    def test_solve_slam(self):
-        slam_positions = self.slam.solve_slam()
-        matlab_sol = np.array([[1, -0.7853], [1.4141,-0.7853], [0, 0]])
-        np.testing.assert_array_equal(slam_positions, self.robot_position)
+    # def test_solve_slam(self):
+    #     slam_positions = self.slam.solve_slam()
+    #     matlab_sol = np.array([[1, -0.7853], [1.4141,-0.7853], [0, 0]])
+    #     np.testing.assert_array_equal(slam_positions, self.robot_position)
         
 if __name__ == '__main__':
     unittest.main()
