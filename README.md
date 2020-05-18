@@ -10,7 +10,7 @@ pip3 install matplotlib
 
 ## Testing
 
-To run the unit tests run the following command from the same directory as `wifi slam.py`.
+To run the unit tests run the following command from the main repository directory.
 
 ```
 python3 -m unittest testing.test_wifislam
