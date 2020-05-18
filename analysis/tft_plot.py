@@ -8,8 +8,6 @@ import os
 
 class TFTplotting:
     def __init__(self, file_paths):
-        # set up pygames, must set up TFT first
-        pygame.init()
 
         # GPIO set up
         GPIO.setmode(GPIO.BCM)
@@ -21,11 +19,13 @@ class TFTplotting:
         # set up exit interup
 
         # set up piTFT stuff
-        #os.putenv('SDL_VIDEODRIVER', 'fbcon')
-        #os.putenv('SDL_FBDEV', '/dev/fb1')
-        #os.putenv('SDL_MOUSEDRV', 'TSLIB')
-        #os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
+        os.putenv('SDL_VIDEODRIVER', 'fbcon')
+        os.putenv('SDL_FBDEV', '/dev/fb1')
+        os.putenv('SDL_MOUSEDRV', 'TSLIB')
+        os.putenv('SDL_MOUSEDEV', '/dev/input/touchscreen')
 
+        # set up pygames, must set up TFT first
+        pygame.init()
 
         # set up interupts for buttons that change displaued plot
         # move 1 plot foward
