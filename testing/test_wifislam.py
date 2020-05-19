@@ -17,9 +17,9 @@ class TestWIFIslamZeros(unittest.TestCase):
         self.slam.positon_xy = self.slam.drm.rd2xy(self.robot_position[:,0], self.robot_position[:,1])
         
         # set the variane to 1 for easer math
-        self.slam.var_dist = 1
-        self.slam.var_gyro = 1
-        self.slam.var_wifi = 1
+        self.slam.std_dist = 1
+        self.slam.std_gyro = 1
+        self.slam.std_wifi = 1
         
     def test_beta(self):
         beta = self.slam.calc_beta(0, self.movement_data)
@@ -82,6 +82,9 @@ class TestWIFIslamNaNs(unittest.TestCase):
         self.slam.var_gyro = 1
         self.slam.var_wifi = 1
 
+        self.slam.std_dist = 1
+        self.slam.std_gyro = 1
+        self.slam.std_wifi = 1
     def test_predict_h_wifi(self):
         h_wifi = self.slam.predict_h_wifi()
         np.testing.assert_array_equal(self.wifi_data, h_wifi)
@@ -134,6 +137,9 @@ class TestWIFIslamNumbers(unittest.TestCase):
         self.slam.var_gyro = 1
         self.slam.var_wifi = 1
         
+        self.slam.std_dist = 1
+        self.slam.std_gyro = 1
+        self.slam.std_wifi = 1
         # set max iterations to 1
         self.slam.max_trys = 1
         
