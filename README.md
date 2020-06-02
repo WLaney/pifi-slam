@@ -1,5 +1,5 @@
 # Pi-Fi SLAM
-WiFi SLAM on a Raspberry Pi. This is William and Luke's final project for ECE 5725.
+WiFi SLAM on a Raspberry Pi. This is William and Luke's final project for ECE 5725. Our full project report can be found [here](https://courses.ece.cornell.edu/ece5990/ECE5725_Spring2020_Projects/May_19_Demo/PiFi%20Slam/ece5725-website/index.html).
 
 The work here was based heavly on the paper [Efficient, generalized indoor WiFi GraphSLAM](https://ieeexplore.ieee.org/document/5979643)
 
